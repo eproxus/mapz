@@ -8,6 +8,7 @@
 -export([deep_remove/2]).
 -export([deep_merge/1]).
 -export([deep_merge/2]).
+-export([deep_merge/3]).
 
 %--- API ----------------------------------------------------------------------
 
@@ -24,25 +25,31 @@ deep_put(Path, Value, Struct) -> recursive(Struct, Path, {set, Value}).
 
 deep_remove(Path, Struct) -> recursive(Struct, Path, delete).
 
-deep_merge([Map|Maps]) -> deep_merge(Map, Maps).
-
-deep_merge(Target, []) ->
-    Target;
-deep_merge(Target, [From|Maps]) ->
-    deep_merge(deep_merge(Target, From), Maps);
-deep_merge(Target, Map) when is_map(Map) ->
+deep_merge([Map|Maps]) ->
     % Key collisions prefer maps over normal values. If a map is to be written
     % to a key, a existing normal value is overwritten and an existing  map is
     % merged.
+    deep_merge(fun(#{} = V, _) -> V; (_, V) -> V end, Map, Maps).
+
+deep_merge(First, Second) when is_map(First), is_map(Second) ->
+    deep_merge([First, Second]);
+deep_merge(First, Maps) when is_map(First), is_list(Maps) ->
+    deep_merge([First|Maps]);
+deep_merge(Fun, [Map|Maps]) when is_function(Fun, 2), is_list(Maps) ->
+    deep_merge(Fun, Map, Maps).
+
+deep_merge(_Fun, Target, []) ->
+    Target;
+deep_merge(Fun, Target, [From|Maps]) ->
+    deep_merge(Fun, deep_merge(Fun, Target, From), Maps);
+deep_merge(Fun, Target, Map) when is_map(Map) ->
     maps:fold(
         fun(K, V, T) ->
             case maps:find(K, T) of
                 {ok, Value} when is_map(Value), is_map(V) ->
-                    maps:put(K, deep_merge(Value, V), T);
-                {ok, Value} when is_map(Value) ->
-                    T;
-                {ok, _Value} ->
-                    maps:put(K, V, T);
+                    maps:put(K, deep_merge(Fun, Value, [V]), T);
+                {ok, Value} ->
+                    maps:put(K, Fun(Value, V), T);
                 error ->
                     maps:put(K, V, T)
             end

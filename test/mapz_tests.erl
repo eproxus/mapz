@@ -65,11 +65,12 @@ util_test_() ->
         ?_assertError(bad_key,             deep_remove([a, a, x], ?STRUCT)),
         % Merge
         ?_assertEqual(?STRUCT, deep_merge([?STRUCT, ?STRUCT])),
-        fun deep_merge_/0
+        deep_merge_(),
+        deep_merge_fun_()
     ]}.
 
 deep_merge_() ->
-    Maps = [
+    [First, Second|_] = Maps = [
         #{a => 1, x => removed},
         #{b => 2, x => #{2 => true, y => #{more => stuff}}},
         #{c => 3, x => #{3 => true, y => removed}},
@@ -87,4 +88,25 @@ deep_merge_() ->
             y => #{more => stuff, extra => data}
         }
     },
-    ?assertEqual(Expected, mapz:deep_merge(Maps)).
+    {inparallel, [
+        ?_assertEqual(Expected, mapz:deep_merge(Maps)),
+        ?_assertEqual(Expected, mapz:deep_merge(hd(Maps), tl(Maps))),
+        ?_assertEqual(
+            mapz:deep_merge([First, Second]),
+            mapz:deep_merge(First, Second)
+        )
+    ]}.
+
+deep_merge_fun_() ->
+    Maps = [
+        #{a => [1, 2], b => #{c => [a]}},
+        #{a => [3, 4], b => #{c => [b]}}
+    ],
+    Fun = fun(A, B) -> A ++ B end,
+    Expected = #{
+        a => [1, 2, 3, 4],
+        b => #{c => [a, b]}
+    },
+    {inparallel, [
+        ?_assertEqual(Expected, mapz:deep_merge(Fun, Maps))
+    ]}.
