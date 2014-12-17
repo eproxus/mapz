@@ -21,9 +21,9 @@ deep_get(Path, Struct) ->
 deep_get(Path, Struct, Default) ->
     search(Struct, Path, fun(Value) -> Value end, fun() -> Default end).
 
-deep_put(Path, Value, Struct) -> recursive(Struct, Path, {set, Value}).
+deep_put(Path, Value, Struct) -> update(Struct, Path, {set, Value}).
 
-deep_remove(Path, Struct) -> recursive(Struct, Path, delete).
+deep_remove(Path, Struct) -> update(Struct, Path, delete).
 
 deep_merge([Map|Maps]) ->
     % Key collisions prefer maps over normal values. If a map is to be written
@@ -70,14 +70,7 @@ search(Struct, [Key|Path], Wrap, Default) when is_map(Struct) ->
 search(_Struct, _Path, _Wrap, Default) ->
     Default().
 
-recursive(Struct, Path, Act) ->
-    try
-        rec(Struct, Path, Act)
-    catch throw:not_found ->
-        error(bad_key)
-    end.
-
-rec(Struct, [Key], Act) when is_map(Struct) ->
+update(Struct, [Key], Act) when is_map(Struct) ->
     case maps:is_key(Key, Struct) of
         true ->
             case Act of
@@ -86,19 +79,19 @@ rec(Struct, [Key], Act) when is_map(Struct) ->
             end;
         false ->
             case Act of
-                delete -> throw(not_found);
+                delete -> error(bad_key);
                 {set, Value} -> maps:put(Key, Value, Struct)
             end
     end;
-rec(Struct, [Key|Path], Act) when is_map(Struct) ->
+update(Struct, [Key|Path], Act) when is_map(Struct) ->
     case maps:find(Key, Struct) of
         {ok, Value} when is_map(Value) ->
-            maps:update(Key, rec(Value, Path, Act), Struct);
+            maps:update(Key, update(Value, Path, Act), Struct);
         error ->
             case Act of
-                delete -> throw(not_found);
-                {set, _Value} -> maps:put(Key, rec(#{}, Path, Act), Struct)
+                delete -> error(bad_key);
+                {set, _Value} -> maps:put(Key, update(#{}, Path, Act), Struct)
             end
     end;
-rec(_Struct, [], {set, Value}) when is_map(_Struct) ->
+update(_Struct, [], {set, Value}) when is_map(_Struct) ->
     Value.
