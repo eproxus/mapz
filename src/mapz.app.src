@@ -1,0 +1,5 @@
+{application, mapz, [
+  {description, "Extensions to the Erlang maps module"},
+  {vsn, "0.1"},
+  {applications, [kernel, stdlib]}
+]}.
