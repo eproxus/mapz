@@ -47,6 +47,7 @@ util_test_() ->
         ?_assertEqual(d,                   deep_get([a, b, c], ?STRUCT, d)),
         ?_assertEqual(?STRUCT,             deep_get([], ?STRUCT)),
         % Put
+        ?_assertEqual(v,                   deep_put([], v, #{})),
         ?_assertEqual(
             v,
             deep_get([a, a, a], deep_put([a, a, a], v, ?STRUCT))

@@ -92,4 +92,6 @@ rec(Struct, [Key|Path], Act) when is_map(Struct) ->
                 delete -> throw(not_found);
                 {set, _Value} -> maps:put(Key, rec(#{}, Path, Act), Struct)
             end
-    end.
+    end;
+rec(_Struct, [], {set, Value}) when is_map(_Struct) ->
+    Value.
