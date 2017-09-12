@@ -26,10 +26,10 @@ deep_put(Path, Value, Struct) -> update(Struct, Path, {set, Value}).
 deep_remove(Path, Struct) -> update(Struct, Path, delete).
 
 deep_merge([Map|Maps]) ->
-    % Key collisions prefer maps over normal values. If a map is to be written
-    % to a key, a existing normal value is overwritten and an existing  map is
-    % merged.
-    deep_merge(fun(#{} = V, _) -> V; (_, V) -> V end, Map, Maps).
+    deep_merge(fun
+        (#{} = V, _) -> error({bad_value, V});
+        (_, V)       -> V
+    end, Map, Maps).
 
 deep_merge(First, Second) when is_map(First), is_map(Second) ->
     deep_merge([First, Second]);

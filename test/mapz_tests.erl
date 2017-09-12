@@ -71,12 +71,13 @@ util_test_() ->
 
 deep_merge_() ->
     [First, Second|_] = Maps = [
-        #{a => 1, x => removed},
-        #{b => 2, x => #{2 => true, y => #{more => stuff}}},
-        #{c => 3, x => #{3 => true, y => removed}},
-        #{d => 4, x => #{4 => true, y => #{extra => data}}}
+        #{val => 1, a => 1},
+        #{val => 2, b => 2, x => #{2 => true, y => #{more => stuff}}},
+        #{val => 3, c => 3, x => #{3 => true}},
+        #{val => 4, d => 4, x => #{4 => true, y => #{extra => data}}}
     ],
     Expected = #{
+        val => 4,
         a => 1,
         b => 2,
         c => 3,
