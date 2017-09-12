@@ -12,39 +12,47 @@
 
 %--- API ----------------------------------------------------------------------
 
-deep_find(Path, Map) ->
+deep_find(Path, Map) when is_map(Map) ->
     search(Map, Path,
         fun(Value) -> {ok, Value} end,
         fun(_Key) -> error end
-    ).
+    );
+deep_find(_Path, Map) ->
+    error({badmap, Map}).
 
-deep_get(Path, Map) ->
+deep_get(Path, Map) when is_map(Map) ->
     search(Map, Path,
         fun(Value) -> Value end,
         fun(Key) -> error({badkey, Key}) end
-    ).
+    );
+deep_get(_Path, Map) ->
+    error({badmap, Map}).
 
-deep_get(Path, Map, Default) ->
+deep_get(Path, Map, Default) when is_map(Map) ->
     search(Map, Path,
         fun(Value) -> Value end,
         fun(_Key) -> Default end
-    ).
+    );
+deep_get(_Path, Map, _Default) ->
+    error({badmap, Map}).
 
-deep_put(Path, Value, Map) -> update(Map, Path, {set, Value}).
+deep_put(Path, Value, Map) when is_map(Map) -> update(Map, Path, {set, Value});
+deep_put(_Path, _Value, Map)                -> error({badmap, Map}).
 
-deep_remove(Path, Map) -> update(Map, Path, delete).
+deep_remove(Path, Map) when is_map(Map) -> update(Map, Path, delete);
+deep_remove(_Path, Map)                 -> error({badmap, Map}).
 
 deep_merge([Map|Maps]) ->
     deep_merge(fun (_, V) -> V end, Map, Maps).
 
-deep_merge(First, Second) when is_map(First), is_map(Second) ->
+deep_merge(First, Second) ->
     deep_merge([First, Second]).
 
-deep_merge(_Fun, Target, []) ->
+deep_merge(_Fun, Target, []) when is_map(Target) ->
     Target;
 deep_merge(Fun, Target, [From|Maps]) ->
     deep_merge(Fun, deep_merge(Fun, Target, From), Maps);
-deep_merge(Fun, Target, Map) when is_map(Map) ->
+deep_merge(Fun, Target, Map) when is_map(Target), is_map(Map) ->
     maps:fold(
         fun(K, V, T) ->
             case maps:find(K, T) of
@@ -58,7 +66,11 @@ deep_merge(Fun, Target, Map) when is_map(Map) ->
         end,
         Target,
         Map
-    ).
+    );
+deep_merge(_Fun, Target, Map) when is_map(Map) ->
+    error({badmap, Target});
+deep_merge(_Fun, Target, Map) when is_map(Target) ->
+    error({badmap, Map}).
 
 %--- Internal Functions -------------------------------------------------------
 

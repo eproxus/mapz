@@ -108,3 +108,17 @@ deep_merge_fun_() ->
     {inparallel, [
         ?_assertEqual(Expected, deep_merge(Fun, First, Second))
     ]}.
+
+badmap_test_() ->
+    {inparallel, [
+        ?_assertError({badmap, 1}, deep_find([a], 1)),
+        ?_assertError({badmap, 1}, deep_get([a], 1)),
+        ?_assertError({badmap, 1}, deep_get([a], 1, d)),
+        ?_assertError({badmap, 1}, deep_put([a], v, 1)),
+        ?_assertError({badmap, 1}, deep_remove([a], 1)),
+        ?_assertError({badmap, 1}, deep_merge(1, #{})),
+        ?_assertError({badmap, 2}, deep_merge(#{}, 2)),
+        ?_assertError({badmap, 1}, deep_merge([#{}, #{}, 1])),
+        ?_assertError({badmap, 1}, deep_merge(fun(_, _) -> ok end, 1, #{})),
+        ?_assertError({badmap, 2}, deep_merge(fun(_, _) -> ok end, #{}, 2))
+    ]}.
