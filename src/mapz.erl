@@ -67,27 +67,20 @@ search(_Struct, _Path, _Wrap, Default) ->
     Default().
 
 update(Struct, [Key], Act) when is_map(Struct) ->
-    case maps:is_key(Key, Struct) of
-        true ->
-            case Act of
-                delete -> maps:remove(Key, Struct);
-                {set, Value} -> maps:update(Key, Value, Struct)
-            end;
-        false ->
-            case Act of
-                delete -> error(bad_key);
-                {set, Value} -> maps:put(Key, Value, Struct)
-            end
+    case {maps:is_key(Key, Struct), Act} of
+        {true, delete}        -> maps:remove(Key, Struct);
+        {true, {set, Value}}  -> maps:update(Key, Value, Struct);
+        {false, delete}       -> error(bad_key);
+        {false, {set, Value}} -> maps:put(Key, Value, Struct)
     end;
 update(Struct, [Key|Path], Act) when is_map(Struct) ->
-    case maps:find(Key, Struct) of
-        {ok, Value} when is_map(Value) ->
+    case {maps:find(Key, Struct), Act} of
+        {{ok, Value}, _} when is_map(Value) ->
             maps:update(Key, update(Value, Path, Act), Struct);
-        error ->
-            case Act of
-                delete -> error(bad_key);
-                {set, _Value} -> maps:put(Key, update(#{}, Path, Act), Struct)
-            end
+        {error, delete} ->
+            error(bad_key);
+        {error, {set, _Value}} ->
+            maps:put(Key, update(#{}, Path, Act), Struct)
     end;
 update(_Struct, [], {set, Value}) when is_map(_Struct) ->
     Value.
