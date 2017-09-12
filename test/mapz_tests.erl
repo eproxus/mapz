@@ -29,7 +29,9 @@
     deep_get/3,
     deep_put/3,
     deep_remove/2,
-    deep_merge/1
+    deep_merge/1,
+    deep_merge/2,
+    deep_merge/3
 ]).
 
 %--- Tests --------------------------------------------------------------------
@@ -42,7 +44,7 @@ util_test_() ->
         % Get
         ?_assertEqual(1,                   deep_get([a, a, a], ?STRUCT)),
         ?_assertEqual(#{a => 1},           deep_get([a, a], ?STRUCT)),
-        ?_assertError(bad_key,             deep_get([a, b, a], ?STRUCT)),
+        ?_assertError({badkey, a},         deep_get([a, b, a], ?STRUCT)),
         ?_assertEqual(d,                   deep_get([a, c], ?STRUCT, d)),
         ?_assertEqual(d,                   deep_get([a, b, c], ?STRUCT, d)),
         ?_assertEqual(?STRUCT,             deep_get([], ?STRUCT)),
@@ -56,14 +58,14 @@ util_test_() ->
             #{a => 1, x => #{y => #{a => 3}}},
             deep_get([a, a], deep_put([a, a, x, y], #{a => 3}, ?STRUCT))
         ),
-        ?_assertError({bad_value, []},     deep_put([d, x], y, ?STRUCT)),
+        ?_assertError({badvalue, []},      deep_put([d, x], y, ?STRUCT)),
         % Remove
         ?_assertEqual(
             #{},
             deep_get([a, a], deep_remove([a, a, a], ?STRUCT))
         ),
-        ?_assertError(bad_key,             deep_remove([y, x], ?STRUCT)),
-        ?_assertError(bad_key,             deep_remove([a, a, x], ?STRUCT)),
+        ?_assertError({badkey, y},         deep_remove([y, x], ?STRUCT)),
+        ?_assertError({badkey, x},         deep_remove([a, a, x], ?STRUCT)),
         % Merge
         ?_assertEqual(?STRUCT, deep_merge([?STRUCT, ?STRUCT])),
         deep_merge_(),
@@ -92,10 +94,7 @@ deep_merge_() ->
     },
     {inparallel, [
         ?_assertEqual(Expected, mapz:deep_merge(Maps)),
-        ?_assertEqual(
-            mapz:deep_merge([First, Second]),
-            mapz:deep_merge(First, Second)
-        )
+        ?_assertEqual(deep_merge([First, Second]), deep_merge(First, Second))
     ]}.
 
 deep_merge_fun_() ->
@@ -107,5 +106,5 @@ deep_merge_fun_() ->
         b => #{c => [a, b]}
     },
     {inparallel, [
-        ?_assertEqual(Expected, mapz:deep_merge(Fun, First, Second))
+        ?_assertEqual(Expected, deep_merge(Fun, First, Second))
     ]}.

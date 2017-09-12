@@ -13,23 +13,29 @@
 %--- API ----------------------------------------------------------------------
 
 deep_find(Path, Struct) ->
-    search(Struct, Path, fun(Value) -> {ok, Value} end, fun() -> error end).
+    search(Struct, Path,
+        fun(Value) -> {ok, Value} end,
+        fun(_Key) -> error end
+    ).
 
 deep_get(Path, Struct) ->
-    search(Struct, Path, fun(Value) -> Value end, fun() -> error(bad_key) end).
+    search(Struct, Path,
+        fun(Value) -> Value end,
+        fun(Key) -> error({badkey, Key}) end
+    ).
 
 deep_get(Path, Struct, Default) ->
-    search(Struct, Path, fun(Value) -> Value end, fun() -> Default end).
+    search(Struct, Path,
+        fun(Value) -> Value end,
+        fun(_Key) -> Default end
+    ).
 
 deep_put(Path, Value, Struct) -> update(Struct, Path, {set, Value}).
 
 deep_remove(Path, Struct) -> update(Struct, Path, delete).
 
 deep_merge([Map|Maps]) ->
-    deep_merge(fun
-        (#{} = V, _) -> error({bad_value, V});
-        (_, V)       -> V
-    end, Map, Maps).
+    deep_merge(fun (_, V) -> V end, Map, Maps).
 
 deep_merge(First, Second) when is_map(First), is_map(Second) ->
     deep_merge([First, Second]).
@@ -61,16 +67,16 @@ search(Struct, [], Wrap, _Default) ->
 search(Struct, [Key|Path], Wrap, Default) when is_map(Struct) ->
     case maps:find(Key, Struct) of
         {ok, Value} -> search(Value, Path, Wrap, Default);
-        error       -> Default()
+        error       -> Default(Key)
     end;
-search(_Struct, _Path, _Wrap, Default) ->
-    Default().
+search(_Struct, [Key|_Path], _Wrap, Default) ->
+    Default(Key).
 
 update(Struct, [Key], Act) when is_map(Struct) ->
     case {maps:is_key(Key, Struct), Act} of
         {true, delete}        -> maps:remove(Key, Struct);
         {true, {set, Value}}  -> maps:update(Key, Value, Struct);
-        {false, delete}       -> error(bad_key);
+        {false, delete}       -> error({badkey, Key});
         {false, {set, Value}} -> maps:put(Key, Value, Struct)
     end;
 update(Struct, [Key|Path], Act) when is_map(Struct) ->
@@ -78,9 +84,9 @@ update(Struct, [Key|Path], Act) when is_map(Struct) ->
         {{ok, Value}, _} when is_map(Value) ->
             maps:update(Key, update(Value, Path, Act), Struct);
         {{ok, Value}, _} ->
-            error({bad_value, Value});
+            error({badvalue, Value});
         {error, delete} ->
-            error(bad_key);
+            error({badkey, Key});
         {error, {set, _Value}} ->
             maps:put(Key, update(#{}, Path, Act), Struct)
     end;
