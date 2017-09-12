@@ -1,5 +1,11 @@
 {application, mapz, [
-  {description, "Extensions to the Erlang maps module"},
-  {vsn, "0.1"},
-  {applications, [kernel, stdlib]}
+    {description, "Extensions to the Erlang maps module"},
+    {vsn, "0.2.0"},
+    {applications, [kernel, stdlib]},
+
+    {maintainers, ["Adam Lindberg"]},
+    {licenses, ["MIT"]},
+    {links, [
+        {"GitHub", "https://github.com/eproxus/mapz"}
+    ]}
 ]}.
