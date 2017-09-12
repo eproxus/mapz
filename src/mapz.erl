@@ -12,35 +12,49 @@
 
 %--- API ----------------------------------------------------------------------
 
-deep_find(Path, Map) when is_map(Map) ->
+deep_find(Path, Map) when is_list(Path), is_map(Map) ->
     search(Map, Path,
         fun(Value) -> {ok, Value} end,
         fun(_Key) -> error end
     );
-deep_find(_Path, Map) ->
+deep_find(Path, Map) when is_map(Map) ->
+    error({badpath, Path});
+deep_find(Path, Map) when is_list(Path) ->
     error({badmap, Map}).
 
-deep_get(Path, Map) when is_map(Map) ->
+deep_get(Path, Map) when is_list(Path), is_map(Map) ->
     search(Map, Path,
         fun(Value) -> Value end,
         fun(Key) -> error({badkey, Key}) end
     );
-deep_get(_Path, Map) ->
+deep_get(Path, Map) when is_map(Map) ->
+    error({badpath, Path});
+deep_get(Path, Map) when is_list(Path) ->
     error({badmap, Map}).
 
-deep_get(Path, Map, Default) when is_map(Map) ->
+deep_get(Path, Map, Default) when is_list(Path), is_map(Map) ->
     search(Map, Path,
         fun(Value) -> Value end,
         fun(_Key) -> Default end
     );
-deep_get(_Path, Map, _Default) ->
+deep_get(Path, Map, _Default) when is_map(Map) ->
+    error({badpath, Path});
+deep_get(Path, Map, _Default) when is_list(Path) ->
     error({badmap, Map}).
 
-deep_put(Path, Value, Map) when is_map(Map) -> update(Map, Path, {set, Value});
-deep_put(_Path, _Value, Map)                -> error({badmap, Map}).
+deep_put(Path, Value, Map) when is_list(Path), is_map(Map) ->
+    update(Map, Path, {set, Value});
+deep_put(Path, _Value, Map) when is_map(Map) ->
+    error({badpath, Path});
+deep_put(Path, _Value, Map) when is_list(Path) ->
+    error({badmap, Map}).
 
-deep_remove(Path, Map) when is_map(Map) -> update(Map, Path, delete);
-deep_remove(_Path, Map)                 -> error({badmap, Map}).
+deep_remove(Path, Map) when is_list(Path), is_map(Map) ->
+    update(Map, Path, delete);
+deep_remove(Path, Map) when is_map(Map) ->
+    error({badpath, Path});
+deep_remove(Path, Map) when is_list(Path) ->
+    error({badmap, Map}).
 
 deep_merge([Map|Maps]) ->
     deep_merge(fun (_, V) -> V end, Map, Maps).
@@ -82,9 +96,7 @@ search(Map, [Key|Path], Wrap, Default) when is_map(Map) ->
         error       -> Default(Key)
     end;
 search(_Map, [Key|_Path], _Wrap, Default) ->
-    Default(Key);
-search(_Map, Path, _Wrap, _Default) ->
-    error({badpath, Path}).
+    Default(Key).
 
 update(Map, [Key], Act) when is_map(Map) ->
     case {maps:is_key(Key, Map), Act} of
@@ -104,7 +116,5 @@ update(Map, [Key|Path], Act) when is_map(Map) ->
         {error, {set, _Value}} ->
             maps:put(Key, update(#{}, Path, Act), Map)
     end;
-update(_Map, [], {set, Value}) when is_map(_Map) ->
-    Value;
-update(_Map, Path, _Act) ->
-    error({badpath, Path}).
+update(Map, [], {set, Value}) when is_map(Map) ->
+    Value.
