@@ -56,6 +56,7 @@ util_test_() ->
             #{a => 1, x => #{y => #{a => 3}}},
             deep_get([a, a], deep_put([a, a, x, y], #{a => 3}, ?STRUCT))
         ),
+        ?_assertError({bad_value, []},     deep_put([d, x], y, ?STRUCT)),
         % Remove
         ?_assertEqual(
             #{},

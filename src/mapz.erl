@@ -77,6 +77,8 @@ update(Struct, [Key|Path], Act) when is_map(Struct) ->
     case {maps:find(Key, Struct), Act} of
         {{ok, Value}, _} when is_map(Value) ->
             maps:update(Key, update(Value, Path, Act), Struct);
+        {{ok, Value}, _} ->
+            error({bad_value, Value});
         {error, delete} ->
             error(bad_key);
         {error, {set, _Value}} ->
