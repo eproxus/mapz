@@ -12,27 +12,27 @@
 
 %--- API ----------------------------------------------------------------------
 
-deep_find(Path, Struct) ->
-    search(Struct, Path,
+deep_find(Path, Map) ->
+    search(Map, Path,
         fun(Value) -> {ok, Value} end,
         fun(_Key) -> error end
     ).
 
-deep_get(Path, Struct) ->
-    search(Struct, Path,
+deep_get(Path, Map) ->
+    search(Map, Path,
         fun(Value) -> Value end,
         fun(Key) -> error({badkey, Key}) end
     ).
 
-deep_get(Path, Struct, Default) ->
-    search(Struct, Path,
+deep_get(Path, Map, Default) ->
+    search(Map, Path,
         fun(Value) -> Value end,
         fun(_Key) -> Default end
     ).
 
-deep_put(Path, Value, Struct) -> update(Struct, Path, {set, Value}).
+deep_put(Path, Value, Map) -> update(Map, Path, {set, Value}).
 
-deep_remove(Path, Struct) -> update(Struct, Path, delete).
+deep_remove(Path, Map) -> update(Map, Path, delete).
 
 deep_merge([Map|Maps]) ->
     deep_merge(fun (_, V) -> V end, Map, Maps).
@@ -62,33 +62,33 @@ deep_merge(Fun, Target, Map) when is_map(Map) ->
 
 %--- Internal Functions -------------------------------------------------------
 
-search(Struct, [], Wrap, _Default) ->
-    Wrap(Struct);
-search(Struct, [Key|Path], Wrap, Default) when is_map(Struct) ->
-    case maps:find(Key, Struct) of
+search(Map, [], Wrap, _Default) ->
+    Wrap(Map);
+search(Map, [Key|Path], Wrap, Default) when is_map(Map) ->
+    case maps:find(Key, Map) of
         {ok, Value} -> search(Value, Path, Wrap, Default);
         error       -> Default(Key)
     end;
-search(_Struct, [Key|_Path], _Wrap, Default) ->
+search(_Map, [Key|_Path], _Wrap, Default) ->
     Default(Key).
 
-update(Struct, [Key], Act) when is_map(Struct) ->
-    case {maps:is_key(Key, Struct), Act} of
-        {true, delete}        -> maps:remove(Key, Struct);
-        {true, {set, Value}}  -> maps:update(Key, Value, Struct);
+update(Map, [Key], Act) when is_map(Map) ->
+    case {maps:is_key(Key, Map), Act} of
+        {true, delete}        -> maps:remove(Key, Map);
+        {true, {set, Value}}  -> maps:update(Key, Value, Map);
         {false, delete}       -> error({badkey, Key});
-        {false, {set, Value}} -> maps:put(Key, Value, Struct)
+        {false, {set, Value}} -> maps:put(Key, Value, Map)
     end;
-update(Struct, [Key|Path], Act) when is_map(Struct) ->
-    case {maps:find(Key, Struct), Act} of
+update(Map, [Key|Path], Act) when is_map(Map) ->
+    case {maps:find(Key, Map), Act} of
         {{ok, Value}, _} when is_map(Value) ->
-            maps:update(Key, update(Value, Path, Act), Struct);
+            maps:update(Key, update(Value, Path, Act), Map);
         {{ok, Value}, _} ->
             error({badvalue, Value});
         {error, delete} ->
             error({badkey, Key});
         {error, {set, _Value}} ->
-            maps:put(Key, update(#{}, Path, Act), Struct)
+            maps:put(Key, update(#{}, Path, Act), Map)
     end;
-update(_Struct, [], {set, Value}) when is_map(_Struct) ->
+update(_Map, [], {set, Value}) when is_map(_Map) ->
     Value.
