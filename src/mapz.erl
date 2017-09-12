@@ -32,11 +32,7 @@ deep_merge([Map|Maps]) ->
     end, Map, Maps).
 
 deep_merge(First, Second) when is_map(First), is_map(Second) ->
-    deep_merge([First, Second]);
-deep_merge(First, Maps) when is_map(First), is_list(Maps) ->
-    deep_merge([First|Maps]);
-deep_merge(Fun, [Map|Maps]) when is_function(Fun, 2), is_list(Maps) ->
-    deep_merge(Fun, Map, Maps).
+    deep_merge([First, Second]).
 
 deep_merge(_Fun, Target, []) ->
     Target;

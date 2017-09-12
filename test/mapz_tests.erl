@@ -91,7 +91,6 @@ deep_merge_() ->
     },
     {inparallel, [
         ?_assertEqual(Expected, mapz:deep_merge(Maps)),
-        ?_assertEqual(Expected, mapz:deep_merge(hd(Maps), tl(Maps))),
         ?_assertEqual(
             mapz:deep_merge([First, Second]),
             mapz:deep_merge(First, Second)
@@ -99,15 +98,13 @@ deep_merge_() ->
     ]}.
 
 deep_merge_fun_() ->
-    Maps = [
-        #{a => [1, 2], b => #{c => [a]}},
-        #{a => [3, 4], b => #{c => [b]}}
-    ],
+    First = #{a => [1, 2], b => #{c => [a]}},
+    Second = #{a => [3, 4], b => #{c => [b]}},
     Fun = fun(A, B) -> A ++ B end,
     Expected = #{
         a => [1, 2, 3, 4],
         b => #{c => [a, b]}
     },
     {inparallel, [
-        ?_assertEqual(Expected, mapz:deep_merge(Fun, Maps))
+        ?_assertEqual(Expected, mapz:deep_merge(Fun, First, Second))
     ]}.
