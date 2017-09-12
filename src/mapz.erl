@@ -74,15 +74,17 @@ deep_merge(_Fun, Target, Map) when is_map(Target) ->
 
 %--- Internal Functions -------------------------------------------------------
 
-search(Map, [], Wrap, _Default) ->
-    Wrap(Map);
+search(Element, [], Wrap, _Default) ->
+    Wrap(Element);
 search(Map, [Key|Path], Wrap, Default) when is_map(Map) ->
     case maps:find(Key, Map) of
         {ok, Value} -> search(Value, Path, Wrap, Default);
         error       -> Default(Key)
     end;
 search(_Map, [Key|_Path], _Wrap, Default) ->
-    Default(Key).
+    Default(Key);
+search(_Map, Path, _Wrap, _Default) ->
+    error({badpath, Path}).
 
 update(Map, [Key], Act) when is_map(Map) ->
     case {maps:is_key(Key, Map), Act} of
@@ -103,4 +105,6 @@ update(Map, [Key|Path], Act) when is_map(Map) ->
             maps:put(Key, update(#{}, Path, Act), Map)
     end;
 update(_Map, [], {set, Value}) when is_map(_Map) ->
-    Value.
+    Value;
+update(_Map, Path, _Act) ->
+    error({badpath, Path}).

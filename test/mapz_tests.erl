@@ -122,3 +122,12 @@ badmap_test_() ->
         ?_assertError({badmap, 1}, deep_merge(fun(_, _) -> ok end, 1, #{})),
         ?_assertError({badmap, 2}, deep_merge(fun(_, _) -> ok end, #{}, 2))
     ]}.
+
+badpath_test_() ->
+    {inparallel, [
+        ?_assertError({badpath, 1}, deep_find(1, #{})),
+        ?_assertError({badpath, 1}, deep_get(1, #{})),
+        ?_assertError({badpath, 1}, deep_get(1, #{}, d)),
+        ?_assertError({badpath, 1}, deep_put(1, v, #{})),
+        ?_assertError({badpath, 1}, deep_remove(1, #{}))
+    ]}.
