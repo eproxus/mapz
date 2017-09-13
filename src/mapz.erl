@@ -10,8 +10,17 @@
 -export([deep_merge/2]).
 -export([deep_merge/3]).
 
+-type path() :: [term()].
+% A list of keys that are used to iterate deeper into a map of maps.
+
 %--- API ----------------------------------------------------------------------
 
+% @doc Returns a tuple `{ok,Value}', where Value is the value associated with
+% `Path', or `error' if no value is associated with `Path' in `Map'.
+%
+% The call fails with a `{badmap,Map}' exception if `Map' is not a map, or with
+% a `{badpath,Path}' exception if `Path' is not a path.
+-spec deep_find(path(), map()) -> {ok, term()} | error.
 deep_find(Path, Map) when is_list(Path), is_map(Map) ->
     search(Map, Path,
         fun(Value) -> {ok, Value} end,
@@ -22,6 +31,11 @@ deep_find(Path, Map) when is_map(Map) ->
 deep_find(Path, Map) when is_list(Path) ->
     error({badmap, Map}).
 
+% @doc Returns value `Value' associated with `Path' if `Map' contains `Path'.
+%
+% The call fails with a `{badmap,Map}' exception if `Map' is not a map, or with
+% a `{badpath,Path}' exception if `Path' is not a path.
+-spec deep_get(path(), map()) -> term().
 deep_get(Path, Map) when is_list(Path), is_map(Map) ->
     search(Map, Path,
         fun(Value) -> Value end,
@@ -32,6 +46,12 @@ deep_get(Path, Map) when is_map(Map) ->
 deep_get(Path, Map) when is_list(Path) ->
     error({badmap, Map}).
 
+% @doc Returns value `Value' associated with `Path' if `Map' contains `Path'. If
+% no value is associated with `Path', `Default' is returned.
+%
+% The call fails with a `{badmap,Map}' exception if `Map' is not a map, or with
+% a `{badpath,Path}' exception if `Path' is not a path.
+-spec deep_get(path(), map(), term()) -> term().
 deep_get(Path, Map, Default) when is_list(Path), is_map(Map) ->
     search(Map, Path,
         fun(Value) -> Value end,
@@ -42,6 +62,14 @@ deep_get(Path, Map, _Default) when is_map(Map) ->
 deep_get(Path, Map, _Default) when is_list(Path) ->
     error({badmap, Map}).
 
+% @doc Associates `Path' with value `Value' and inserts the association into map
+% `Map2'. If path `Path' already exists in map `Map1', the old associated value
+% is replaced by value `Value'. The function returns a new map `Map2' containing
+% the new association and the old associations in `Map1'.
+%
+% The call fails with a `{badmap,Map}' exception if `Map' is not a map, or with
+% a `{badpath,Path}' exception if `Path' is not a path.
+-spec deep_put(path(), term(), map()) -> map().
 deep_put(Path, Value, Map) when is_list(Path), is_map(Map) ->
     update(Map, Path, {set, Value});
 deep_put(Path, _Value, Map) when is_map(Map) ->
@@ -49,6 +77,12 @@ deep_put(Path, _Value, Map) when is_map(Map) ->
 deep_put(Path, _Value, Map) when is_list(Path) ->
     error({badmap, Map}).
 
+% @doc Removes the `Path', if it exists, and its associated value from `Map1'
+% and returns a new map `Map2' without path `Path'.
+%
+% The call fails with a `{badmap,Map}' exception if `Map' is not a map, or with
+% a `{badpath,Path}' exception if `Path' is not a path.
+-spec deep_remove(path(), map()) -> map().
 deep_remove(Path, Map) when is_list(Path), is_map(Map) ->
     update(Map, Path, delete);
 deep_remove(Path, Map) when is_map(Map) ->
@@ -56,12 +90,31 @@ deep_remove(Path, Map) when is_map(Map) ->
 deep_remove(Path, Map) when is_list(Path) ->
     error({badmap, Map}).
 
+% @doc Merges a list of maps recursively into a single map. If a path exist in
+% several maps, the value in the first nested map is superseded by the value in
+% a following nested map.
+%
+% The call fails with a `{badmap,Map}' exception if `Map1' or `Map2' is not a
+% map.
+%
+% @equiv deep_merge(fun (_, V) -> V end, #{}, Maps)
+-spec deep_merge([map()]) -> map().
 deep_merge([Map|Maps]) ->
     deep_merge(fun (_, V) -> V end, Map, Maps).
 
-deep_merge(First, Second) ->
-    deep_merge([First, Second]).
+% @equiv deep_merge([Map1, Map2])
+-spec deep_merge(map(), map()) -> map().
+deep_merge(Map1, Map2) ->
+    deep_merge([Map1, Map2]).
 
+% @doc Merges a list of maps `Maps' recursively into a single map `Target'. If a
+% path exist in several maps, the function `Fun' is called with the previous and
+% the conflicting value to resolve the conflict. The return value from the
+% function is put into the resulting map.
+%
+% The call fails with a `{badmap,Map}' exception if any of the maps is not a
+% map.
+-spec deep_merge(fun((Old::term(), New::term()) -> term()), map(), map() | [map()]) -> map().
 deep_merge(_Fun, Target, []) when is_map(Target) ->
     Target;
 deep_merge(Fun, Target, [From|Maps]) ->
