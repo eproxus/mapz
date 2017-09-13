@@ -31,7 +31,8 @@
     deep_remove/2,
     deep_merge/1,
     deep_merge/2,
-    deep_merge/3
+    deep_merge/3,
+    inverse/1
 ]).
 
 %--- Tests --------------------------------------------------------------------
@@ -130,4 +131,9 @@ badpath_test_() ->
         ?_assertError({badpath, 1}, deep_get(1, #{}, d)),
         ?_assertError({badpath, 1}, deep_put(1, v, #{})),
         ?_assertError({badpath, 1}, deep_remove(1, #{}))
+    ]}.
+
+inverse_test_() ->
+    {inparallel, [
+        ?_assertEqual(#{1 => a, 2 => c}, inverse(#{a => 1, b => 2, c => 2}))
     ]}.

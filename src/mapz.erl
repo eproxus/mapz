@@ -9,6 +9,7 @@
 -export([deep_merge/1]).
 -export([deep_merge/2]).
 -export([deep_merge/3]).
+-export([inverse/1]).
 
 -type path() :: [term()].
 % A list of keys that are used to iterate deeper into a map of maps.
@@ -138,6 +139,15 @@ deep_merge(_Fun, Target, Map) when is_map(Map) ->
     error({badmap, Target});
 deep_merge(_Fun, Target, Map) when is_map(Target) ->
     error({badmap, Map}).
+
+% @doc Inverts `Map' by inserting each value as the key with its corresponding
+% key as the value. If two keys have the same value, one of the keys will be
+% overwritten by the other in an undefined order.
+%
+% The call fails with a `{badmap,Map}' exception if `Map' is not a map.
+-spec inverse(map()) -> map().
+inverse(Map) ->
+    maps:fold(fun(K, V, Acc) -> maps:put(V, K, Acc) end, #{}, Map).
 
 %--- Internal Functions -------------------------------------------------------
 
