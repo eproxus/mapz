@@ -60,17 +60,21 @@ util_test_() ->
             deep_get([a, a], deep_put([a, a, x, y], #{a => 3}, ?STRUCT))
         ),
         ?_assertError({badvalue, []},      deep_put([d, x], y, ?STRUCT)),
+
+        deep_remove_(),
+        deep_merge_(),
+        deep_merge_fun_()
+    ]}.
+
+deep_remove_() ->
+    {inparallel, [
         % Remove
         ?_assertEqual(
             #{},
             deep_get([a, a], deep_remove([a, a, a], ?STRUCT))
         ),
         ?_assertError({badkey, y},         deep_remove([y, x], ?STRUCT)),
-        ?_assertError({badkey, x},         deep_remove([a, a, x], ?STRUCT)),
-        % Merge
-        ?_assertEqual(?STRUCT, deep_merge([?STRUCT, ?STRUCT])),
-        deep_merge_(),
-        deep_merge_fun_()
+        ?_assertError({badkey, x},         deep_remove([a, a, x], ?STRUCT))
     ]}.
 
 deep_merge_() ->
@@ -94,6 +98,7 @@ deep_merge_() ->
         }
     },
     {inparallel, [
+        ?_assertEqual(?STRUCT, deep_merge([?STRUCT, ?STRUCT])),
         ?_assertEqual(Expected, mapz:deep_merge(Maps)),
         ?_assertEqual(deep_merge([First, Second]), deep_merge(First, Second))
     ]}.
