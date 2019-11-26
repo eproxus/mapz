@@ -72,20 +72,23 @@ deep_get(Path, Map, _Default) when is_list(Path) ->
 % a `{badpath,Path}' exception if `Path' is not a path.
 -spec deep_put(path(), term(), map()) -> map().
 deep_put(Path, Value, Map) when is_list(Path), is_map(Map) ->
-    update(Map, Path, {set, Value});
+    update(Map, Path, Value);
 deep_put(Path, _Value, Map) when is_map(Map) ->
     error({badpath, Path});
 deep_put(Path, _Value, Map) when is_list(Path) ->
     error({badmap, Map}).
 
-% @doc Removes the `Path', if it exists, and its associated value from `Map1'
-% and returns a new map `Map2' without path `Path'.
+% @doc Removes the last existing key of `Path', and its associated value from
+% `Map1' and returns a new map `Map2' without that key. Any deeper non-existing
+% keys are ignored.
 %
 % The call fails with a `{badmap,Map}' exception if `Map' is not a map, or with
 % a `{badpath,Path}' exception if `Path' is not a path.
 -spec deep_remove(path(), map()) -> map().
+deep_remove([], Map) when is_map(Map) ->
+    Map;
 deep_remove(Path, Map) when is_list(Path), is_map(Map) ->
-    update(Map, Path, delete);
+    remove(Map, Path);
 deep_remove(Path, Map) when is_map(Map) ->
     error({badpath, Path});
 deep_remove(Path, Map) when is_list(Path) ->
@@ -161,23 +164,33 @@ search(Map, [Key|Path], Wrap, Default) when is_map(Map) ->
 search(_Map, [Key|_Path], _Wrap, Default) ->
     Default(Key).
 
-update(Map, [Key], Act) when is_map(Map) ->
-    case {maps:is_key(Key, Map), Act} of
-        {true, delete}        -> maps:remove(Key, Map);
-        {true, {set, Value}}  -> maps:update(Key, Value, Map);
-        {false, delete}       -> error({badkey, Key});
-        {false, {set, Value}} -> maps:put(Key, Value, Map)
+update(Map, [Key], Value) when is_map(Map) ->
+    maps:put(Key, Value, Map);
+update(Map, [Key|Path], Value) when is_map(Map) ->
+    case maps:find(Key, Map) of
+        {ok, Existing} when is_map(Existing) ->
+            maps:update(Key, update(Existing, Path, Value), Map);
+        {ok, Existing} ->
+            error({badvalue, Existing});
+        error ->
+            maps:put(Key, update(#{}, Path, Value), Map)
     end;
-update(Map, [Key|Path], Act) when is_map(Map) ->
-    case {maps:find(Key, Map), Act} of
-        {{ok, Value}, _} when is_map(Value) ->
-            maps:update(Key, update(Value, Path, Act), Map);
-        {{ok, Value}, _} ->
-            error({badvalue, Value});
-        {error, delete} ->
-            error({badkey, Key});
-        {error, {set, _Value}} ->
-            maps:put(Key, update(#{}, Path, Act), Map)
-    end;
-update(Map, [], {set, Value}) when is_map(Map) ->
+update(Map, [], Value) when is_map(Map) ->
     Value.
+
+remove(Map, [First]) ->
+    maps:remove(First, Map);
+remove(Map, [First, Second|Path]) when is_map(Map) ->
+    case maps:find(First, Map) of
+        {ok, Sub} when is_map(Sub) ->
+            case maps:find(Second, Sub) of
+                {ok, _SubSub} ->
+                    maps:update(First, remove(Sub, [Second|Path]), Map);
+                error ->
+                    maps:remove(First, Map)
+            end;
+        {ok, _Value} ->
+            maps:remove(First, Map);
+        error ->
+            Map
+    end.

@@ -68,13 +68,22 @@ util_test_() ->
 
 deep_remove_() ->
     {inparallel, [
-        % Remove
+        ?_assertEqual(?STRUCT, deep_remove([], ?STRUCT)),
+        ?_assertEqual(?STRUCT, deep_remove([y], ?STRUCT)),
+        ?_assertEqual(?STRUCT, deep_remove([y, x], ?STRUCT)),
         ?_assertEqual(
-            #{},
-            deep_get([a, a], deep_remove([a, a, a], ?STRUCT))
+            #{b => 2},
+            deep_get([a], deep_remove([a, a], ?STRUCT))
         ),
-        ?_assertError({badkey, y},         deep_remove([y, x], ?STRUCT)),
-        ?_assertError({badkey, x},         deep_remove([a, a, x], ?STRUCT))
+        ?_assertEqual(
+            #{b => 2},
+            deep_get([a], deep_remove([a, a, 0], ?STRUCT))
+        ),
+        ?_assertEqual(#{}, deep_get([a, a], deep_remove([a, a, a], ?STRUCT))),
+        ?_assertEqual(
+            #{a => #{a => 1}},
+            deep_get([a], deep_remove([a, b, a], ?STRUCT))
+        )
     ]}.
 
 deep_merge_() ->
