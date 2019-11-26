@@ -47,8 +47,10 @@ util_test_() ->
         ?_assertEqual(#{a => 1},           deep_get([a, a], ?STRUCT)),
         ?_assertError({badkey, a},         deep_get([a, b, a], ?STRUCT)),
         ?_assertEqual(d,                   deep_get([a, c], ?STRUCT, d)),
+        ?_assertEqual(1,                   deep_get([a, a, a], ?STRUCT, d)),
         ?_assertEqual(d,                   deep_get([a, b, c], ?STRUCT, d)),
         ?_assertEqual(?STRUCT,             deep_get([], ?STRUCT)),
+        ?_assertError({badkey, a},         deep_get([a, b, a], ?STRUCT)),
         % Put
         ?_assertEqual(v,                   deep_put([], v, #{})),
         ?_assertEqual(
