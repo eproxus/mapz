@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Clarified documentation for `deep_put/3` regarding possible exceptions.
+
 ### Changed
 
 - `deep_remove` now removes the last existing key in the path, ignoring the rest
