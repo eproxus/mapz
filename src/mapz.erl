@@ -69,7 +69,7 @@ deep_get(Path, Map, _Default) when is_list(Path) ->
 % the new association and the old associations in `Map1'.
 %
 % The call fails with a `{badmap,Map}' exception if `Map' is not a map, or with
-% a `{badpath,Path}' exception if `Path' is not a path. `{badvalue,Term}` is
+% a `{badpath,Path}' exception if `Path' is not a path. `{badvalue,Term}' is
 % raised if a term that is not a map exists as a intermediate key in the path.
 -spec deep_put(path(), term(), map()) -> map().
 deep_put(Path, Value, Map) when is_list(Path), is_map(Map) ->
