@@ -21,8 +21,11 @@
 % @doc Returns a tuple `{ok,Value}', where Value is the value associated with
 % `Path', or `error' if no value is associated with `Path' in `Map'.
 %
-% The call fails with a `{badmap,Map}' exception if `Map' is not a map, or with
-% a `{badpath,Path}' exception if `Path' is not a path.
+% The call can raise the following exceptions:
+% <ul>
+% <li>`{badmap,Map}' if `Map' is not a map</li>
+% <li>`{badpath,Path}' if `Path' is not a path</li>
+% </ul>
 -spec deep_find(path(), map()) -> {ok, term()} | error.
 deep_find(Path, Map) ->
     check(Path, Map),
@@ -35,7 +38,7 @@ deep_find(Path, Map) ->
 %
 % The call can raise the following exceptions:
 % <ul>
-% <li>`{badmap,Map}' if `Map1' is not a map</li>
+% <li>`{badmap,Map}' if `Map' is not a map</li>
 % <li>`{badpath,Path}' if `Path' is not a path</li>
 % <li>`{badvalue,P}' if a term that is not a map exists as a intermediate key at
 %     the path `P'</li>
@@ -57,7 +60,7 @@ deep_get(Path, Map) ->
 %
 % The call can raise the following exceptions:
 % <ul>
-% <li>`{badmap,Map}' if `Map1' is not a map</li>
+% <li>`{badmap,Map}' if `Map' is not a map</li>
 % <li>`{badpath,Path}' if `Path' is not a path</li>
 % <li>`{badvalue,P}' if a term that is not a map exists as a intermediate key at
 %     the path `P'</li>
@@ -75,9 +78,13 @@ deep_get(Path, Map, Default) ->
 % is replaced by value `Value'. The function returns a new map `Map2' containing
 % the new association and the old associations in `Map1'.
 %
-% The call fails with a `{badmap,Map}' exception if `Map' is not a map, or with
-% a `{badpath,Path}' exception if `Path' is not a path. `{badvalue,P}' is raised
-% if a term that is not a map exists as a intermediate key at the path `P'.
+% The call can raise the following exceptions:
+% <ul>
+% <li>`{badmap,Map}' if `Map1' is not a map</li>
+% <li>`{badpath,Path}' if `Path' is not a path</li>
+% <li>`{badvalue,P}' if a term that is not a map exists as a intermediate key at
+%     the path `P'</li>
+% </ul>
 -spec deep_put(path(), term(), map()) -> map().
 deep_put(Path, Value, Map1)  ->
     check(Path, Map1),
@@ -142,8 +149,11 @@ deep_update_with(Path, Fun, Map1) ->
 % `Map1' and returns a new map `Map2' without that key. Any deeper non-existing
 % keys are ignored.
 %
-% The call fails with a `{badmap,Map}' exception if `Map' is not a map, or with
-% a `{badpath,Path}' exception if `Path' is not a path.
+% The call can raise the following exceptions:
+% <ul>
+% <li>`{badmap,Map}' if `Map' is not a map</li>
+% <li>`{badpath,Path}' if `Path' is not a path</li>
+% </ul>
 -spec deep_remove(path(), map()) -> map().
 deep_remove(Path, Map) ->
     check(Path, Map),
@@ -153,8 +163,10 @@ deep_remove(Path, Map) ->
 % several maps, the value in the first nested map is superseded by the value in
 % a following nested map.
 %
-% The call fails with a `{badmap,Map}' exception if `Map1' or `Map2' is not a
-% map.
+% The call can raise the following exceptions:
+% <ul>
+% <li>`{badmap,Map}' exception if any of the maps is not a map</li>
+% </ul>
 %
 % @equiv deep_merge(fun (_, V) -> V end, #{}, Maps)
 -spec deep_merge([map()]) -> map().
@@ -171,7 +183,10 @@ deep_merge(Map1, Map2) ->
 % the conflicting value to resolve the conflict. The return value from the
 % function is put into the resulting map.
 %
-% The call fails with a `{badmap,Map}' exception if any of the maps is not a
+% The call can raise the following exceptions:
+% <ul>
+% <li>`{badmap,Map}' exception if any of the maps is not a map</li>
+% </ul>
 % map.
 -spec deep_merge(fun((Old::term(), New::term()) -> term()), map(), map() | [map()]) -> map().
 deep_merge(_Fun, Target, []) when is_map(Target) ->
@@ -200,7 +215,10 @@ deep_merge(Fun, Target, Map) ->
 % key as the value. If two keys have the same value, one of the keys will be
 % overwritten by the other in an undefined order.
 %
-% The call fails with a `{badmap,Map}' exception if `Map' is not a map.
+% The call can raise the following exceptions:
+% <ul>
+% <li>`{badmap,Map}' if `Map' is not a map</li>
+% </ul>
 -spec inverse(map()) -> map().
 inverse(Map) ->
     maps:fold(fun(K, V, Acc) -> maps:put(V, K, Acc) end, #{}, Map).
