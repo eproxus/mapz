@@ -55,8 +55,13 @@ deep_get(Path, Map) ->
 % @doc Returns value `Value' associated with `Path' if `Map' contains `Path'. If
 % no value is associated with `Path', `Default' is returned.
 %
-% The call fails with a `{badmap,Map}' exception if `Map' is not a map, or with
-% a `{badpath,Path}' exception if `Path' is not a path.
+% The call can raise the following exceptions:
+% <ul>
+% <li>`{badmap,Map}' if `Map1' is not a map</li>
+% <li>`{badpath,Path}' if `Path' is not a path</li>
+% <li>`{badvalue,P}' if a term that is not a map exists as a intermediate key at
+%     the path `P'</li>
+% </ul>
 -spec deep_get(path(), map(), term()) -> term().
 deep_get(Path, Map, Default) ->
     check(Path, Map),
