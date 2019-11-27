@@ -5,6 +5,7 @@
 -export([deep_get/2]).
 -export([deep_get/3]).
 -export([deep_put/3]).
+-export([deep_update/3]).
 -export([deep_remove/2]).
 -export([deep_merge/1]).
 -export([deep_merge/2]).
@@ -69,15 +70,51 @@ deep_get(Path, Map, _Default) when is_list(Path) ->
 % the new association and the old associations in `Map1'.
 %
 % The call fails with a `{badmap,Map}' exception if `Map' is not a map, or with
-% a `{badpath,Path}' exception if `Path' is not a path. `{badvalue,Term}' is
-% raised if a term that is not a map exists as a intermediate key in the path.
+% a `{badpath,Path}' exception if `Path' is not a path. `{badvalue,P}' is raised
+% if a term that is not a map exists as a intermediate key at the path `P'.
 -spec deep_put(path(), term(), map()) -> map().
-deep_put(Path, Value, Map) when is_list(Path), is_map(Map) ->
-    update(Map, Path, Value);
-deep_put(Path, _Value, Map) when is_map(Map) ->
+deep_put(Path, Value, Map1) when is_list(Path), is_map(Map1) ->
+    update(Map1, Path,
+        fun() -> Value end,
+        fun
+            (P, _Rest, {ok, _Existing}) ->
+                error({badvalue, P});
+            (_P, Rest, error) ->
+                lists:foldr(fun(Key, Acc) -> #{Key => Acc} end, Value, Rest)
+        end
+    );
+deep_put(Path, _Value, Map1) when is_map(Map1) ->
     error({badpath, Path});
-deep_put(Path, _Value, Map) when is_list(Path) ->
-    error({badmap, Map}).
+deep_put(Path, _Value, Map1) when is_list(Path) ->
+    error({badmap, Map1}).
+
+% @doc If `Path' exists in `Map1', the old associated value is replaced by value
+% `Value'. The function returns a new map `Map2' containing the new associated
+% value.
+%
+% The call can raise the following exceptions:
+% <ul>
+% <li>`{badmap,Map}' if `Map1' is not a map</li>
+% <li>`{badpath,Path}' if `Path' is not a path</li>
+% <li>`{badvalue,P}' if a term that is not a map exists as a intermediate key at
+%     the path `P'</li>
+% <li>`{badkey,Path}' if no value is associated with path `Path'</li>
+% </ul>
+-spec deep_update(path(), term(), map()) -> map().
+deep_update(Path, Value, Map1) when is_list(Path), is_map(Map1)->
+    update(Map1, Path,
+        fun() -> Value end,
+        fun
+            (P, _Rest, {ok, _Existing}) ->
+                error({badvalue, P});
+            (P, _Rest, error) ->
+                error({badkey, P})
+        end
+    );
+deep_update(Path, _Value, Map1) when is_map(Map1) ->
+    error({badpath, Path});
+deep_update(Path, _Value, Map1) when is_list(Path) ->
+    error({badmap, Map1}).
 
 % @doc Removes the last existing key of `Path', and its associated value from
 % `Map1' and returns a new map `Map2' without that key. Any deeper non-existing
@@ -165,19 +202,24 @@ search(Map, [Key|Path], Wrap, Default) when is_map(Map) ->
 search(_Map, [Key|_Path], _Wrap, Default) ->
     Default(Key).
 
-update(Map, [Key], Value) when is_map(Map) ->
-    maps:put(Key, Value, Map);
-update(Map, [Key|Path], Value) when is_map(Map) ->
-    case maps:find(Key, Map) of
+update(Map, Path, Wrap, Default) -> update(Map, Path, Wrap, Default, []).
+
+update(Map, [Key|Path], Wrap, Default, Acc) when is_map(Map) ->
+    Hist = [Key|Acc],
+    Value = case maps:find(Key, Map) of
         {ok, Existing} when is_map(Existing) ->
-            maps:update(Key, update(Existing, Path, Value), Map);
+            update(Existing, Path, Wrap, Default, Hist);
         {ok, Existing} ->
-            error({badvalue, Existing});
+            case Path of
+                [] -> Wrap();
+                _  -> Default(lists:reverse(Hist), Path, {ok, Existing})
+            end;
         error ->
-            maps:put(Key, update(#{}, Path, Value), Map)
-    end;
-update(Map, [], Value) when is_map(Map) ->
-    Value.
+            Default(lists:reverse(Hist), Path, error)
+    end,
+    maps:put(Key, Value, Map);
+update(Map, [], Wrap, _Default, _Acc) when is_map(Map) ->
+    Wrap().
 
 remove(Map, [First]) ->
     maps:remove(First, Map);

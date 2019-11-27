@@ -28,6 +28,7 @@
     deep_get/2,
     deep_get/3,
     deep_put/3,
+    deep_update/3,
     deep_remove/2,
     deep_merge/1,
     deep_merge/2,
@@ -61,11 +62,27 @@ util_test_() ->
             #{a => 1, x => #{y => #{a => 3}}},
             deep_get([a, a], deep_put([a, a, x, y], #{a => 3}, ?STRUCT))
         ),
-        ?_assertError({badvalue, []},      deep_put([d, x], y, ?STRUCT)),
+        ?_assertError({badvalue, [d]},      deep_put([d, x], y, ?STRUCT)),
+        ?_assertError({badvalue, [a, b]},      deep_put([a, b, c], 1, ?STRUCT)),
 
+        deep_update_(),
         deep_remove_(),
         deep_merge_(),
         deep_merge_fun_()
+    ]}.
+
+deep_update_() ->
+    {inparallel, [
+        ?_assertError({badmap, foobar}, deep_update([a], 2, foobar)),
+        ?_assertError({badpath, a}, deep_update(a, 2, #{a => 1})),
+        ?_assertEqual(#{a => 2}, deep_update([a], 2, #{a => 1})),
+        ?_assertEqual(
+            deep_put([a, a, a], 2, ?STRUCT),
+            deep_update([a, a, a], 2, ?STRUCT)
+        ),
+        ?_assertError({badkey, [b]}, deep_update([b], 2, #{a => 1})),
+        ?_assertError({badkey, [b, x]}, deep_update([b, x], 2, ?STRUCT)),
+        ?_assertError({badvalue, [d]}, deep_update([d, x], 2, ?STRUCT))
     ]}.
 
 deep_remove_() ->
