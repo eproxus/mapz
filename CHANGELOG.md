@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- New `deep_update/3` function
+- New [`deep_update/3`][deep_update-3] function
+- New [`deep_update_with/3`][deep_update_with-3] function
 
 ### Changed
 
@@ -36,3 +37,6 @@ Initial release
 [unreleased]: https://github.com/eproxus/mapz/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/eproxus/mapz/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/eproxus/mapz/releases/tag/v0.3.0
+
+[deep_update-3]: https://hexdocs.pm/mapz/mapz.html#deep_update-3
+[deep_update_with-3]: https://hexdocs.pm/mapz/mapz.html#deep_update_with-3

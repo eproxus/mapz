@@ -29,6 +29,7 @@
     deep_get/3,
     deep_put/3,
     deep_update/3,
+    deep_update_with/3,
     deep_remove/2,
     deep_merge/1,
     deep_merge/2,
@@ -66,6 +67,7 @@ util_test_() ->
         ?_assertError({badvalue, [a, b]},      deep_put([a, b, c], 1, ?STRUCT)),
 
         deep_update_(),
+        deep_update_with_(),
         deep_remove_(),
         deep_merge_(),
         deep_merge_fun_()
@@ -83,6 +85,23 @@ deep_update_() ->
         ?_assertError({badkey, [b]}, deep_update([b], 2, #{a => 1})),
         ?_assertError({badkey, [b, x]}, deep_update([b, x], 2, ?STRUCT)),
         ?_assertError({badvalue, [d]}, deep_update([d, x], 2, ?STRUCT))
+    ]}.
+
+deep_update_with_() ->
+    Incr = fun(V) -> V + 1 end,
+    {inparallel, [
+        ?_assertError({badmap, foobar}, deep_update_with([a], Incr, foobar)),
+        ?_assertError({badpath, a}, deep_update_with(a, Incr, #{a => 1})),
+        ?_assertEqual(#{a => 2}, deep_update_with([a], Incr, #{a => 1})),
+        ?_assertEqual(
+            deep_put([a, a, a], 2, ?STRUCT),
+            deep_update_with([a, a, a], Incr, ?STRUCT)
+        ),
+        ?_assertError({badkey, [b]}, deep_update_with([b], Incr, #{a => 1})),
+        ?_assertError({badkey, [b, x]}, deep_update_with([b, x], Incr, ?STRUCT)),
+        ?_assertError({badvalue, [d]}, deep_update_with([d, x], Incr, ?STRUCT)),
+        ?_assertExit(badarg, deep_update_with([a], x, ?STRUCT)),
+        ?_assertExit(badarg, deep_update_with([a], fun() -> foo end, ?STRUCT))
     ]}.
 
 deep_remove_() ->

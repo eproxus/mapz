@@ -6,6 +6,7 @@
 -export([deep_get/3]).
 -export([deep_put/3]).
 -export([deep_update/3]).
+-export([deep_update_with/3]).
 -export([deep_remove/2]).
 -export([deep_merge/1]).
 -export([deep_merge/2]).
@@ -67,7 +68,7 @@ deep_get(Path, Map, Default) ->
 deep_put(Path, Value, Map1)  ->
     check(Path, Map1),
     update(Map1, Path,
-        fun() -> Value end,
+        fun(_Existing) -> Value end,
         fun
             (P, _Rest, {ok, _Existing}) ->
                 error({badvalue, P});
@@ -92,12 +93,34 @@ deep_put(Path, Value, Map1)  ->
 deep_update(Path, Value, Map1) ->
     check(Path, Map1),
     update(Map1, Path,
-        fun() -> Value end,
+        fun(_Existing) -> Value end,
         fun
-            (P, _Rest, {ok, _Existing}) ->
-                error({badvalue, P});
-            (P, _Rest, error) ->
-                error({badkey, P})
+            (P, _Rest, {ok, _Existing}) -> error({badvalue, P});
+            (P, _Rest, error)           -> error({badkey, P})
+        end
+    ).
+
+% @doc Update a value in a `Map1' associated with `Path' by calling `Fun' on the
+% old value to get a new value.
+%
+% The call can raise the following exceptions:
+% <ul>
+% <li>`{badmap,Map}' if `Map1' is not a map</li>
+% <li>`{badpath,Path}' if `Path' is not a path</li>
+% <li>`{badvalue,P}' if a term that is not a map exists as a intermediate key at
+%     the path `P'</li>
+% <li>`{badkey,Path}' if no value is associated with path `Path'</li>
+% <li>`badarg' if `Fun' is not a function of arity 1</li>
+% </ul>
+-spec deep_update_with(path(), fun((term()) -> term()), map()) -> map().
+deep_update_with(Path, Fun, Map1) ->
+    check(Path, Map1),
+    check_fun(Fun, 1),
+    update(Map1, Path,
+        fun(Value) -> Fun(Value) end,
+        fun
+            (P, _Rest, {ok, _Existing}) -> error({badvalue, P});
+            (P, _Rest, error)           -> error({badkey, P})
         end
     ).
 
@@ -180,6 +203,9 @@ check_path(Path)                    -> error({badpath, Path}).
 check_map(Map) when is_map(Map) -> ok;
 check_map(Map)                  -> error({badmap, Map}).
 
+check_fun(Fun, Arity) when is_function(Fun, Arity) -> ok;
+check_fun(_Fun, _Arity)                            -> exit(badarg).
+
 search(Element, [], Wrap, _Default) ->
     Wrap(Element);
 search(Map, [Key|Path], Wrap, Default) when is_map(Map) ->
@@ -199,7 +225,7 @@ update(Map, [Key|Path], Wrap, Default, Acc) when is_map(Map) ->
             update(Existing, Path, Wrap, Default, Hist);
         {ok, Existing} ->
             case Path of
-                [] -> Wrap();
+                [] -> Wrap(Existing);
                 _  -> Default(lists:reverse(Hist), Path, {ok, Existing})
             end;
         error ->
@@ -207,7 +233,7 @@ update(Map, [Key|Path], Wrap, Default, Acc) when is_map(Map) ->
     end,
     maps:put(Key, Value, Map);
 update(Map, [], Wrap, _Default, _Acc) when is_map(Map) ->
-    Wrap().
+    Wrap(error).
 
 remove(Map, []) ->
     Map;
