@@ -28,19 +28,28 @@ deep_find(Path, Map) ->
     check(Path, Map),
     search(Map, Path,
         fun(Value) -> {ok, Value} end,
-        fun(_Key) -> error end
+        fun(_Existing, _Key) -> error end
     ).
 
 % @doc Returns value `Value' associated with `Path' if `Map' contains `Path'.
 %
-% The call fails with a `{badmap,Map}' exception if `Map' is not a map, or with
-% a `{badpath,Path}' exception if `Path' is not a path.
+% The call can raise the following exceptions:
+% <ul>
+% <li>`{badmap,Map}' if `Map1' is not a map</li>
+% <li>`{badpath,Path}' if `Path' is not a path</li>
+% <li>`{badvalue,P}' if a term that is not a map exists as a intermediate key at
+%     the path `P'</li>
+% <li>`{badkey,Path}' if no value is associated with path `Path'</li>
+% </ul>
 -spec deep_get(path(), map()) -> term().
 deep_get(Path, Map) ->
     check(Path, Map),
     search(Map, Path,
         fun(Value) -> Value end,
-        fun(Key) -> error({badkey, Key}) end
+        fun
+            ({ok, _Existing}, P) -> error({badvalue, P});
+            (error, P)           -> error({badkey, P})
+        end
     ).
 
 % @doc Returns value `Value' associated with `Path' if `Map' contains `Path'. If
@@ -53,7 +62,7 @@ deep_get(Path, Map, Default) ->
     check(Path, Map),
     search(Map, Path,
         fun(Value) -> Value end,
-        fun(_Key) -> Default end
+        fun(_Existing, _P) -> Default end
     ).
 
 % @doc Associates `Path' with value `Value' and inserts the association into map
@@ -206,15 +215,17 @@ check_map(Map)                  -> error({badmap, Map}).
 check_fun(Fun, Arity) when is_function(Fun, Arity) -> ok;
 check_fun(_Fun, _Arity)                            -> exit(badarg).
 
-search(Element, [], Wrap, _Default) ->
+search(Map, Path, Wrap, Default) -> search(Map, Path, Wrap, Default, []).
+
+search(Element, [], Wrap, _Default, _Acc) ->
     Wrap(Element);
-search(Map, [Key|Path], Wrap, Default) when is_map(Map) ->
+search(Map, [Key|Path], Wrap, Default, Acc) when is_map(Map) ->
     case maps:find(Key, Map) of
-        {ok, Value} -> search(Value, Path, Wrap, Default);
-        error       -> Default(Key)
+        {ok, Value} -> search(Value, Path, Wrap, Default, [Key|Acc]);
+        error       -> Default(error, lists:reverse([Key|Acc]))
     end;
-search(_Map, [Key|_Path], _Wrap, Default) ->
-    Default(Key).
+search(Value, [_Key|_Path], _Wrap, Default, Acc) ->
+    Default({ok, Value}, lists:reverse(Acc)).
 
 update(Map, Path, Wrap, Default) -> update(Map, Path, Wrap, Default, []).
 

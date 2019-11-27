@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `{badvalue, P}` exception from `deep_put/3` now returns a path to the bad
   value instead of the value itself to make it coherent with the new
   `deep_update/3` implementation.
+- The `{badkey, K}` exception from `deep_get/2` has been changed to
+  `{badvalue, P}` to make it coherent with `deep_put/3` and others.
 
 ## [1.0.0] - 2019-11-26
 
