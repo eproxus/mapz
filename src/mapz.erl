@@ -23,30 +23,24 @@
 % The call fails with a `{badmap,Map}' exception if `Map' is not a map, or with
 % a `{badpath,Path}' exception if `Path' is not a path.
 -spec deep_find(path(), map()) -> {ok, term()} | error.
-deep_find(Path, Map) when is_list(Path), is_map(Map) ->
+deep_find(Path, Map) ->
+    check(Path, Map),
     search(Map, Path,
         fun(Value) -> {ok, Value} end,
         fun(_Key) -> error end
-    );
-deep_find(Path, Map) when is_map(Map) ->
-    error({badpath, Path});
-deep_find(Path, Map) when is_list(Path) ->
-    error({badmap, Map}).
+    ).
 
 % @doc Returns value `Value' associated with `Path' if `Map' contains `Path'.
 %
 % The call fails with a `{badmap,Map}' exception if `Map' is not a map, or with
 % a `{badpath,Path}' exception if `Path' is not a path.
 -spec deep_get(path(), map()) -> term().
-deep_get(Path, Map) when is_list(Path), is_map(Map) ->
+deep_get(Path, Map) ->
+    check(Path, Map),
     search(Map, Path,
         fun(Value) -> Value end,
         fun(Key) -> error({badkey, Key}) end
-    );
-deep_get(Path, Map) when is_map(Map) ->
-    error({badpath, Path});
-deep_get(Path, Map) when is_list(Path) ->
-    error({badmap, Map}).
+    ).
 
 % @doc Returns value `Value' associated with `Path' if `Map' contains `Path'. If
 % no value is associated with `Path', `Default' is returned.
@@ -54,15 +48,12 @@ deep_get(Path, Map) when is_list(Path) ->
 % The call fails with a `{badmap,Map}' exception if `Map' is not a map, or with
 % a `{badpath,Path}' exception if `Path' is not a path.
 -spec deep_get(path(), map(), term()) -> term().
-deep_get(Path, Map, Default) when is_list(Path), is_map(Map) ->
+deep_get(Path, Map, Default) ->
+    check(Path, Map),
     search(Map, Path,
         fun(Value) -> Value end,
         fun(_Key) -> Default end
-    );
-deep_get(Path, Map, _Default) when is_map(Map) ->
-    error({badpath, Path});
-deep_get(Path, Map, _Default) when is_list(Path) ->
-    error({badmap, Map}).
+    ).
 
 % @doc Associates `Path' with value `Value' and inserts the association into map
 % `Map2'. If path `Path' already exists in map `Map1', the old associated value
@@ -73,7 +64,8 @@ deep_get(Path, Map, _Default) when is_list(Path) ->
 % a `{badpath,Path}' exception if `Path' is not a path. `{badvalue,P}' is raised
 % if a term that is not a map exists as a intermediate key at the path `P'.
 -spec deep_put(path(), term(), map()) -> map().
-deep_put(Path, Value, Map1) when is_list(Path), is_map(Map1) ->
+deep_put(Path, Value, Map1)  ->
+    check(Path, Map1),
     update(Map1, Path,
         fun() -> Value end,
         fun
@@ -82,11 +74,7 @@ deep_put(Path, Value, Map1) when is_list(Path), is_map(Map1) ->
             (_P, Rest, error) ->
                 lists:foldr(fun(Key, Acc) -> #{Key => Acc} end, Value, Rest)
         end
-    );
-deep_put(Path, _Value, Map1) when is_map(Map1) ->
-    error({badpath, Path});
-deep_put(Path, _Value, Map1) when is_list(Path) ->
-    error({badmap, Map1}).
+    ).
 
 % @doc If `Path' exists in `Map1', the old associated value is replaced by value
 % `Value'. The function returns a new map `Map2' containing the new associated
@@ -101,7 +89,8 @@ deep_put(Path, _Value, Map1) when is_list(Path) ->
 % <li>`{badkey,Path}' if no value is associated with path `Path'</li>
 % </ul>
 -spec deep_update(path(), term(), map()) -> map().
-deep_update(Path, Value, Map1) when is_list(Path), is_map(Map1)->
+deep_update(Path, Value, Map1) ->
+    check(Path, Map1),
     update(Map1, Path,
         fun() -> Value end,
         fun
@@ -110,11 +99,7 @@ deep_update(Path, Value, Map1) when is_list(Path), is_map(Map1)->
             (P, _Rest, error) ->
                 error({badkey, P})
         end
-    );
-deep_update(Path, _Value, Map1) when is_map(Map1) ->
-    error({badpath, Path});
-deep_update(Path, _Value, Map1) when is_list(Path) ->
-    error({badmap, Map1}).
+    ).
 
 % @doc Removes the last existing key of `Path', and its associated value from
 % `Map1' and returns a new map `Map2' without that key. Any deeper non-existing
@@ -123,14 +108,9 @@ deep_update(Path, _Value, Map1) when is_list(Path) ->
 % The call fails with a `{badmap,Map}' exception if `Map' is not a map, or with
 % a `{badpath,Path}' exception if `Path' is not a path.
 -spec deep_remove(path(), map()) -> map().
-deep_remove([], Map) when is_map(Map) ->
-    Map;
-deep_remove(Path, Map) when is_list(Path), is_map(Map) ->
-    remove(Map, Path);
-deep_remove(Path, Map) when is_map(Map) ->
-    error({badpath, Path});
-deep_remove(Path, Map) when is_list(Path) ->
-    error({badmap, Map}).
+deep_remove(Path, Map) ->
+    check(Path, Map),
+    remove(Map, Path).
 
 % @doc Merges a list of maps recursively into a single map. If a path exist in
 % several maps, the value in the first nested map is superseded by the value in
@@ -161,7 +141,9 @@ deep_merge(_Fun, Target, []) when is_map(Target) ->
     Target;
 deep_merge(Fun, Target, [From|Maps]) ->
     deep_merge(Fun, deep_merge(Fun, Target, From), Maps);
-deep_merge(Fun, Target, Map) when is_map(Target), is_map(Map) ->
+deep_merge(Fun, Target, Map) ->
+    check_map(Target),
+    check_map(Map),
     maps:fold(
         fun(K, V, T) ->
             case maps:find(K, T) of
@@ -175,11 +157,7 @@ deep_merge(Fun, Target, Map) when is_map(Target), is_map(Map) ->
         end,
         Target,
         Map
-    );
-deep_merge(_Fun, Target, Map) when is_map(Map) ->
-    error({badmap, Target});
-deep_merge(_Fun, Target, Map) when is_map(Target) ->
-    error({badmap, Map}).
+    ).
 
 % @doc Inverts `Map' by inserting each value as the key with its corresponding
 % key as the value. If two keys have the same value, one of the keys will be
@@ -191,6 +169,16 @@ inverse(Map) ->
     maps:fold(fun(K, V, Acc) -> maps:put(V, K, Acc) end, #{}, Map).
 
 %--- Internal Functions -------------------------------------------------------
+
+check(Path, Map) ->
+    check_path(Path),
+    check_map(Map).
+
+check_path(Path) when is_list(Path) -> ok;
+check_path(Path)                    -> error({badpath, Path}).
+
+check_map(Map) when is_map(Map) -> ok;
+check_map(Map)                  -> error({badmap, Map}).
 
 search(Element, [], Wrap, _Default) ->
     Wrap(Element);
@@ -221,6 +209,8 @@ update(Map, [Key|Path], Wrap, Default, Acc) when is_map(Map) ->
 update(Map, [], Wrap, _Default, _Acc) when is_map(Map) ->
     Wrap().
 
+remove(Map, []) ->
+    Map;
 remove(Map, [First]) ->
     maps:remove(First, Map);
 remove(Map, [First, Second|Path]) when is_map(Map) ->
