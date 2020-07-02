@@ -7,6 +7,7 @@
 -export([deep_put/3]).
 -export([deep_update/3]).
 -export([deep_update_with/3]).
+-export([deep_update_with/4]).
 -export([deep_remove/2]).
 -export([deep_merge/1]).
 -export([deep_merge/2]).
@@ -88,15 +89,9 @@ deep_get(Path, Map, Default) ->
 -spec deep_put(path(), term(), map()) -> map().
 deep_put(Path, Value, Map1)  ->
     check(Path, Map1),
-    update(Map1, Path,
-        fun(_Existing) -> Value end,
-        fun
-            (P, _Rest, {ok, _Existing}) ->
-                error({badvalue, P});
-            (_P, Rest, error) ->
-                lists:foldr(fun(Key, Acc) -> #{Key => Acc} end, Value, Rest)
-        end
-    ).
+    update(Map1, Path, fun(_Existing) -> Value end, fun(P, Rest, V) ->
+        badvalue_and_create(P, Rest, V, Value)
+    end).
 
 % @doc If `Path' exists in `Map1', the old associated value is replaced by value
 % `Value'. The function returns a new map `Map2' containing the new associated
@@ -113,13 +108,7 @@ deep_put(Path, Value, Map1)  ->
 -spec deep_update(path(), term(), map()) -> map().
 deep_update(Path, Value, Map1) ->
     check(Path, Map1),
-    update(Map1, Path,
-        fun(_Existing) -> Value end,
-        fun
-            (P, _Rest, {ok, _Existing}) -> error({badvalue, P});
-            (P, _Rest, error)           -> error({badkey, P})
-        end
-    ).
+    update(Map1, Path, fun(_Existing) -> Value end, fun badvalue_and_badkey/3).
 
 % @doc Update a value in a `Map1' associated with `Path' by calling `Fun' on the
 % old value to get a new value.
@@ -135,14 +124,32 @@ deep_update(Path, Value, Map1) ->
 % </ul>
 -spec deep_update_with(path(), fun((term()) -> term()), map()) -> map().
 deep_update_with(Path, Fun, Map1) ->
+    deep_update_with_1(Path, Fun, Map1, fun badvalue_and_badkey/3).
+
+% @doc Update a value in a `Map1' associated with `Path' by calling `Fun' on the
+% old value to get a new value.  If `Path' is not present in `Map1' then `Init'
+% will be associated with `Path'.
+%
+% The call can raise the following exceptions:
+% <ul>
+% <li>`{badmap,Map}' if `Map1' is not a map</li>
+% <li>`{badpath,Path}' if `Path' is not a path</li>
+% <li>`{badvalue,P}' if a term that is not a map exists as a intermediate key at
+%     the path `P'</li>
+% <li>`badarg' if `Fun' is not a function of arity 1</li>
+% </ul>
+-spec deep_update_with(path(), fun((term()) -> term()), any(), map()) -> map().
+deep_update_with(Path, Fun, Init, Map1) ->
+    deep_update_with_1(Path, Fun, Map1, fun(P, Rest, Value) ->
+        badvalue_and_create(P, Rest, Value, Init)
+    end).
+
+deep_update_with_1(Path, Fun, Map1, Default) ->
     check(Path, Map1),
     check_fun(Fun, 1),
     update(Map1, Path,
         fun(Value) -> Fun(Value) end,
-        fun
-            (P, _Rest, {ok, _Existing}) -> error({badvalue, P});
-            (P, _Rest, error)           -> error({badkey, P})
-        end
+        Default
     ).
 
 % @doc Removes the last existing key of `Path', and its associated value from
@@ -287,3 +294,12 @@ remove(Map, [First, Second|Path]) when is_map(Map) ->
         error ->
             Map
     end.
+
+create(Path, Value) ->
+    lists:foldr(fun(Key, Acc) -> #{Key => Acc} end, Value, Path).
+
+badvalue_and_badkey(P, _Rest, {ok, _Existing}) -> error({badvalue, P});
+badvalue_and_badkey(P, _Rest, error)           -> error({badkey, P}).
+
+badvalue_and_create(P, _Rest, {ok, _Existing}, _Init) -> error({badvalue, P});
+badvalue_and_create(_P, Rest, error, Init)            -> create(Rest, Init).
