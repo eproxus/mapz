@@ -273,8 +273,8 @@ update(Map, [Key|Path], Wrap, Default, Acc) ->
             Default(lists:reverse(Hist), Path, error)
     end,
     maps:put(Key, Value, Map);
-    Wrap(error).
 update(Map, [], Wrap, _Default, _Acc) ->
+    Wrap(Map).
 
 remove(Map, []) ->
     Map;

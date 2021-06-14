@@ -8,6 +8,13 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [2.1.1] - 2021-06-14
+
+### Fixed
+
+- Updating a path that had a map as value with `deep_update_with` returned
+  `error` instead of the map value.
+
 ## [2.1.0] - 2020-07-02
 
 ### Added

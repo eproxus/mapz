@@ -13,7 +13,8 @@
         a => 3,
         b => 4
     },
-    d => []
+    d => [],
+    e => #{}
 }).
 
 -import(mapz, [
@@ -77,6 +78,10 @@ deep_update_with_test_() ->
         ?_assertEqual(
             deep_put([a, a, a], 2, ?STRUCT),
             deep_update_with([a, a, a], Incr, ?STRUCT)
+        ),
+        ?_assertEqual(
+            deep_put([e], #{v => 1}, ?STRUCT),
+            deep_update_with([e], fun(M) -> M#{v => 1} end, ?STRUCT)
         ),
         ?_assertExit(badarg, deep_update_with([a], x, ?STRUCT)),
         ?_assertExit(badarg, deep_update_with([a], fun() -> foo end, ?STRUCT))
