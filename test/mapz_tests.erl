@@ -51,17 +51,14 @@ deep_get_test_() ->
 
 deep_put_test_() ->
     {inparallel, [
-        ?_assertEqual(v,                   deep_put([], v, #{})),
-        ?_assertEqual(
-            v,
-            deep_get([a, a, a], deep_put([a, a, a], v, ?STRUCT))
-        ),
+        ?_assertEqual(v, deep_put([], v, #{})),
+        ?_assertEqual(v, deep_get([a, a, a], deep_put([a, a, a], v, ?STRUCT))),
         ?_assertEqual(
             #{a => 1, x => #{y => #{a => 3}}},
             deep_get([a, a], deep_put([a, a, x, y], #{a => 3}, ?STRUCT))
         ),
-        ?_assertError({badvalue, [d]},      deep_put([d, x], y, ?STRUCT)),
-        ?_assertError({badvalue, [a, b]},      deep_put([a, b, c], 1, ?STRUCT))
+        ?_assertError({badvalue, [d]}, deep_put([d, x], y, ?STRUCT)),
+        ?_assertError({badvalue, [a, b]}, deep_put([a, b, c], 1, ?STRUCT))
     ]}.
 
 deep_update_test_() ->
