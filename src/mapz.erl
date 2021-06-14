@@ -259,7 +259,7 @@ search(Value, [_Key|_Path], _Wrap, Default, Acc) ->
 
 update(Map, Path, Wrap, Default) -> update(Map, Path, Wrap, Default, []).
 
-update(Map, [Key|Path], Wrap, Default, Acc) when is_map(Map) ->
+update(Map, [Key|Path], Wrap, Default, Acc) ->
     Hist = [Key|Acc],
     Value = case maps:find(Key, Map) of
         {ok, Existing} when is_map(Existing) ->
@@ -273,8 +273,8 @@ update(Map, [Key|Path], Wrap, Default, Acc) when is_map(Map) ->
             Default(lists:reverse(Hist), Path, error)
     end,
     maps:put(Key, Value, Map);
-update(Map, [], Wrap, _Default, _Acc) when is_map(Map) ->
     Wrap(error).
+update(Map, [], Wrap, _Default, _Acc) ->
 
 remove(Map, []) ->
     Map;
