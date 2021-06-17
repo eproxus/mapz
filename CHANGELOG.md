@@ -12,9 +12,13 @@ and this project adheres to
 
 - New [`deep_iterator/1`][deep_iterator-1] function
 - New [`deep_next/1`][deep_next-1] function
+- New [`deep_merge_with/2`][deep_merge-2] function
+- New [`deep_merge_with/3`][deep_merge-3] function
 
 [deep_iterator-1]: https://hexdocs.pm/mapz/mapz.html#deep_iterator-1
 [deep_next-1]: https://hexdocs.pm/mapz/mapz.html#deep_next-1
+[deep_merge_with-2]: https://hexdocs.pm/mapz/mapz.html#deep_next-2
+[deep_merge_with-3]: https://hexdocs.pm/mapz/mapz.html#deep_next-3
 
 ## [2.1.1] - 2021-06-14
 

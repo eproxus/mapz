@@ -12,6 +12,8 @@
 -export([deep_merge/1]).
 -export([deep_merge/2]).
 -export([deep_merge/3]).
+-export([deep_merge_with/2]).
+-export([deep_merge_with/3]).
 -export([deep_iterator/1]).
 -export([deep_next/1]).
 -export([inverse/1]).
@@ -24,6 +26,7 @@
 
 -export_type([path/0]).
 -export_type([iterator/0]).
+-export_type([combiner/0]).
 
 -type path() :: [term()].
 % A list of keys that are used to iterate deeper into a map of maps.
@@ -34,6 +37,10 @@
 % Created using {@link deep_iterator/1}.
 %
 % Consumed by {@link deep_next/1}.
+
+-type combiner() :: fun((Path::path(), Old::term(), New::term()) -> term()).
+% A combiner function that takes a path, and its two conflicting old values and
+% returns a new value.
 
 %--- API ----------------------------------------------------------------------
 
@@ -195,12 +202,12 @@ deep_remove(Path, Map) ->
 %
 % @equiv deep_merge(fun (_, V) -> V end, #{}, Maps)
 -spec deep_merge([map()]) -> map().
-deep_merge([Map|Maps]) ->
-    deep_merge(fun (_, V) -> V end, Map, Maps).
+deep_merge(Maps) when is_list(Maps) ->
+    deep_merge_with(fun(_Path, _V1, V2) -> V2 end, Maps).
 
 % @equiv deep_merge([Map1, Map2])
 -spec deep_merge(map(), map()) -> map().
-deep_merge(Map1, Map2) ->
+deep_merge(Map1, Map2) when is_map(Map1), is_map(Map2) ->
     deep_merge([Map1, Map2]).
 
 % @doc Merges a list of maps `Maps' recursively into a single map `Target'. If a
@@ -213,21 +220,54 @@ deep_merge(Map1, Map2) ->
 % <li>`{badmap,Map}' exception if any of the maps is not a map</li>
 % </ul>
 % map.
+%
+% @deprecated Please use the module {@link deep_merge_with/3} instead.
 -spec deep_merge(fun((Old::term(), New::term()) -> term()), map(), map() | [map()]) -> map().
-deep_merge(_Fun, Target, []) when is_map(Target) ->
+deep_merge(Fun, Target, Maps) ->
+    deep_merge_with(fun(_P, V1, V2) -> Fun(V1, V2) end, Target, Maps).
+
+% @doc Merges a list of maps `Maps' recursively into a single map. If a path
+%  exist in several maps, the function `Fun' is called with the path, the
+%  previous and the conflicting value to resolve the conflict. The return value
+%  from the function is put into the resulting map.
+%
+% The call can raise the following exceptions:
+% <ul>
+% <li>`{badmap,Map}' exception if any of the maps is not a map</li>
+% </ul>
+% map.
+-spec deep_merge_with(Fun::combiner(), Maps::[map()]) -> map().
+deep_merge_with(Fun, [Target|Maps]) ->
+    deep_merge_with1(Fun, Target, Maps, []).
+
+% @doc Merges a list of maps `Maps' recursively into a single map. If a path
+%  exist in several maps, the function `Fun' is called with the path, the
+%  previous and the conflicting value to resolve the conflict. The return value
+%  from the function is put into the resulting map.
+%
+% The call can raise the following exceptions:
+% <ul>
+% <li>`{badmap,Map}' exception if any of the maps is not a map</li>
+% </ul>
+% map.
+-spec deep_merge_with(Fun::combiner(), Map1::map(), Map2::map()) -> map().
+deep_merge_with(Fun, Map1, Map2) when is_map(Map1), is_map(Map2) ->
+    deep_merge_with(Fun, [Map1, Map2]).
+
+deep_merge_with1(_Fun, Target, [], _Path) when is_map(Target) ->
     Target;
-deep_merge(Fun, Target, [From|Maps]) ->
-    deep_merge(Fun, deep_merge(Fun, Target, From), Maps);
-deep_merge(Fun, Target, Map) ->
+deep_merge_with1(Fun, Target, [From|Maps], Path) ->
+    deep_merge_with1(Fun, deep_merge_with1(Fun, Target, From, Path), Maps, Path);
+deep_merge_with1(Fun, Target, Map, Path) when is_map(Map) ->
     check_map(Target),
     check_map(Map),
     maps:fold(
         fun(K, V, T) ->
             case maps:find(K, T) of
                 {ok, Value} when is_map(Value), is_map(V) ->
-                    maps:put(K, deep_merge(Fun, Value, [V]), T);
+                    maps:put(K, deep_merge_with1(Fun, Value, [V], Path ++ [K]), T);
                 {ok, Value} ->
-                    maps:put(K, Fun(Value, V), T);
+                    maps:put(K, Fun(Path ++ [K], Value, V), T);
                 error ->
                     maps:put(K, V, T)
             end

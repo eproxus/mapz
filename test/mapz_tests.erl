@@ -16,6 +16,25 @@
     d => [],
     e => #{}
 }).
+-define(TO_MERGE, [
+    #{val => 1, a => 1},
+    #{val => 2, b => 2, x => #{2 => true, y => #{more => stuff}}},
+    #{val => 3, c => 3, x => #{3 => true}},
+    #{val => 4, d => 4, x => #{4 => true, y => #{extra => data}}}
+]).
+-define(MERGED, #{
+    val => 4,
+    a => 1,
+    b => 2,
+    c => 3,
+    d => 4,
+    x => #{
+        2 => true,
+        3 => true,
+        4 => true,
+        y => #{more => stuff, extra => data}
+    }
+}).
 
 -import(mapz, [
     deep_find/2,
@@ -29,6 +48,8 @@
     deep_merge/1,
     deep_merge/2,
     deep_merge/3,
+    deep_merge_with/2,
+    deep_merge_with/3,
     deep_iterator/1,
     deep_next/1,
     inverse/1
@@ -139,25 +160,8 @@ deep_remove_test_() ->
     ]}.
 
 deep_merge_test_() ->
-    [First, Second|_] = Maps = [
-        #{val => 1, a => 1},
-        #{val => 2, b => 2, x => #{2 => true, y => #{more => stuff}}},
-        #{val => 3, c => 3, x => #{3 => true}},
-        #{val => 4, d => 4, x => #{4 => true, y => #{extra => data}}}
-    ],
-    Expected = #{
-        val => 4,
-        a => 1,
-        b => 2,
-        c => 3,
-        d => 4,
-        x => #{
-            2 => true,
-            3 => true,
-            4 => true,
-            y => #{more => stuff, extra => data}
-        }
-    },
+    [First, Second|_] = Maps = ?TO_MERGE,
+    Expected = ?MERGED,
     {inparallel, [
         ?_assertEqual(?STRUCT, deep_merge([?STRUCT, ?STRUCT])),
         ?_assertEqual(Expected, mapz:deep_merge(Maps)),
@@ -174,6 +178,35 @@ deep_merge_fun_test_() ->
     },
     {inparallel, [
         ?_assertEqual(Expected, deep_merge(Fun, First, Second))
+    ]}.
+
+deep_merge_with_test_() ->
+    Override = fun(_P, _A, B) -> B end,
+    Append = fun
+        (P, A, B) when is_list(A), is_list(B) ->
+            io:format("~p ~p ~p~n", [P, A, B]),
+            {P, A ++ B};
+        (P, A, B) ->
+            io:format("~p ~p ~p~n", [P, A, B]),
+            {P, {A, B}}
+    end,
+    {inparallel, [
+        ?_assertEqual(?STRUCT, deep_merge_with(Override, ?STRUCT, ?STRUCT)),
+        ?_assertEqual(?MERGED, deep_merge_with(Override, ?TO_MERGE)),
+        ?_assertEqual(
+            #{
+                a => {[a], [1, 2]},
+                b => #{c => {[b,c], [3,4]}},
+                d => {[d], {5, 6}},
+                e => 7,
+                x => {[x], {[foo], #{y => [bar]}}}
+            },
+            deep_merge_with(
+                Append,
+                #{a => [1], b => #{c => [3]}, d => 5, x => [foo]},
+                #{a => [2], b => #{c => [4]}, d => 6, e => 7, x => #{y => [bar]}}
+            )
+        )
     ]}.
 
 deep_iterator_test_() ->
