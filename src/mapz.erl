@@ -12,10 +12,28 @@
 -export([deep_merge/1]).
 -export([deep_merge/2]).
 -export([deep_merge/3]).
+-export([deep_iterator/1]).
+-export([deep_next/1]).
 -export([inverse/1]).
+-export([format_error/2]).
+
+% We must inline this so that the stack trace points to the correct function.
+-compile({inline, [error_info/2]}).
+
+%--- Types ---------------------------------------------------------------------
+
+-export_type([path/0]).
+-export_type([iterator/0]).
 
 -type path() :: [term()].
 % A list of keys that are used to iterate deeper into a map of maps.
+
+-opaque iterator() :: {?MODULE, none | maps:iterator(_, _) | {_, _, maps:iterator(_, _)}, path(), [maps:iterator(_, _)]}.
+% An iterator representing the associations in a map with keys of type Key and values of type Value.
+%
+% Created using {@link deep_iterator/1}.
+%
+% Consumed by {@link deep_next/1}.
 
 %--- API ----------------------------------------------------------------------
 
@@ -218,6 +236,42 @@ deep_merge(Fun, Target, Map) ->
         Map
     ).
 
+% @doc Returns a map iterator Iterator that can be used by {@link deep_next/1}
+%  to recursively traverse the path-value associations in a deep map structure.
+%
+% The call fails with a `{badmap,Map}' exception if Map is not a map.
+-spec deep_iterator(map()) -> iterator().
+deep_iterator(Map) when is_map(Map) ->
+    {?MODULE, maps:next(maps:iterator(Map)), [], []};
+deep_iterator(Map) ->
+    error_info({badmap, Map}, [Map]).
+
+% @doc Returns the next path-value association in Iterator and a new iterator
+%  for the remaining associations in the iterator.
+%
+% If the value is another map the iterator will first return the map as a value
+% with its path. Only on the next call the inner value with its path is
+% returned. That is, first `{Path, map(), iterator()}' and then
+% `{InnerPath, Value, iterator()}'.
+%
+% If there are no more associations in the iterator, `none' is returned.
+-spec deep_next(iterator()) -> {path(), term(), iterator()} | none.
+deep_next({?MODULE, I, Trail, Stack}) ->
+    case {I, Stack} of
+        {none, []} ->
+            none;
+        {none, [Prev|Rest]} ->
+            deep_next({?MODULE, maps:next(Prev), lists:droplast(Trail), Rest});
+        {{K, V, I2}, Stack} when is_map(V) ->
+            Path = Trail ++ [K],
+            {Path, V, {?MODULE, maps:next(maps:iterator(V)), Path, [I2|Stack]}};
+        {{K, V, I2}, Stack} ->
+            Path = Trail ++ [K],
+            {Path, V, {?MODULE, I2, Trail, Stack}}
+    end;
+deep_next(Iter) ->
+    error_info(badarg, [Iter]).
+
 % @doc Inverts `Map' by inserting each value as the key with its corresponding
 % key as the value. If two keys have the same value, one of the keys will be
 % overwritten by the other in an undefined order.
@@ -229,6 +283,10 @@ deep_merge(Fun, Target, Map) ->
 -spec inverse(map()) -> map().
 inverse(Map) ->
     maps:fold(fun(K, V, Acc) -> maps:put(V, K, Acc) end, #{}, Map).
+
+% @hidden
+format_error(_Reason, [{_M, F, As, _Info}|_]) ->
+    error_args(F, As).
 
 %--- Internal Functions -------------------------------------------------------
 
@@ -303,3 +361,11 @@ badvalue_and_badkey(P, _Rest, error)           -> error({badkey, P}).
 
 badvalue_and_create(P, _Rest, {ok, _Existing}, _Init) -> error({badvalue, P});
 badvalue_and_create(_P, Rest, error, Init)            -> create(Rest, Init).
+
+error_info(Reason, Args) ->
+    erlang:error(Reason, Args, [{error_info, #{module => ?MODULE}}]).
+
+error_args(iterator, [_Map]) ->
+    #{1 => <<"not a map">>};
+error_args(deep_next, [_Iter]) ->
+    #{1 => <<"not a valid iterator">>}.

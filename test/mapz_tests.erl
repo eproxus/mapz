@@ -29,6 +29,8 @@
     deep_merge/1,
     deep_merge/2,
     deep_merge/3,
+    deep_iterator/1,
+    deep_next/1,
     inverse/1
 ]).
 
@@ -173,6 +175,47 @@ deep_merge_fun_test_() ->
     {inparallel, [
         ?_assertEqual(Expected, deep_merge(Fun, First, Second))
     ]}.
+
+deep_iterator_test_() ->
+    {inparallel, [
+        ?_assertError({badmap, foo}, deep_iterator(foo)),
+        ?_assertError(badarg, deep_next(foo)),
+        ?_assertEqual(none, deep_next(deep_iterator(#{}))),
+        ?_assertEqual(
+            [{[a], 1}],
+            exhaust(deep_iterator(#{a => 1}))
+        ),
+        ?_assertEqual(
+            lists:sort([
+                {[a], #{b => 2}},
+                {[a, b], 2},
+                {[c], 3}
+            ]),
+            lists:sort(exhaust(deep_iterator(#{a => #{b => 2}, c => 3})))
+        ),
+        ?_assertEqual(
+            lists:sort([
+                {[a], deep_get([a], ?STRUCT)},
+                {[a, a], deep_get([a, a], ?STRUCT)},
+                {[a, a, a], 1},
+                {[a, b], 2},
+                {[b], deep_get([b], ?STRUCT)},
+                {[b, a], 3},
+                {[b, b], 4},
+                {[d], []},
+                {[e], #{}}
+            ]),
+            lists:sort(exhaust(deep_iterator(?STRUCT)))
+        )
+    ]}.
+
+exhaust(I) ->
+    exhaust(deep_next(I), []).
+
+exhaust(none, Acc) ->
+    lists:reverse(Acc);
+exhaust({K, V, I}, Acc) ->
+    exhaust(deep_next(I), [{K, V}|Acc]).
 
 inverse_test_() ->
     {inparallel, [

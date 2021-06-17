@@ -8,6 +8,14 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- New [`deep_iterator/1`][deep_iterator-1] function
+- New [`deep_next/1`][deep_next-1] function
+
+[deep_iterator-1]: https://hexdocs.pm/mapz/mapz.html#deep_iterator-1
+[deep_next-1]: https://hexdocs.pm/mapz/mapz.html#deep_next-1
+
 ## [2.1.1] - 2021-06-14
 
 ### Fixed
