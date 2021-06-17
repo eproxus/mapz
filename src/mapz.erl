@@ -335,10 +335,10 @@ check(Path, Map) ->
     check_map(Map).
 
 check_path(Path) when is_list(Path) -> ok;
-check_path(Path)                    -> error({badpath, Path}).
+check_path(Path)                    -> error_info({badpath, Path}, [Path]).
 
 check_map(Map) when is_map(Map) -> ok;
-check_map(Map)                  -> error({badmap, Map}).
+check_map(Map)                  -> error_info({badmap, Map}, [Map]).
 
 check_fun(Fun, Arity) when is_function(Fun, Arity) -> ok;
 check_fun(_Fun, _Arity)                            -> exit(badarg).
