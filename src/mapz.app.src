@@ -1,6 +1,6 @@
 {application, mapz, [
     {description, "Extensions to the Erlang maps module"},
-    {vsn, "2.1.1"},
+    {vsn, "2.2.0"},
     {applications, [kernel, stdlib]},
 
     {licenses, ["MIT"]},

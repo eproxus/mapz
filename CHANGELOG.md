@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [2.2.0] - 2021-06-17
+
 ### Added
 
 - New [`deep_iterator/1`][deep_iterator-1] function
@@ -69,7 +71,9 @@ and this project adheres to
 
 Initial release
 
-[unreleased]: https://github.com/eproxus/mapz/compare/v2.1.0...HEAD
+[unreleased]: https://github.com/eproxus/mapz/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/eproxus/mapz/compare/v2.1.1...v2.2.0
+[2.1.1]: https://github.com/eproxus/mapz/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/eproxus/mapz/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/eproxus/mapz/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/eproxus/mapz/compare/v0.3.0...v1.0.0
