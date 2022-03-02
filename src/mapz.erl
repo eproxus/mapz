@@ -17,6 +17,7 @@
 -export([deep_iterator/1]).
 -export([deep_next/1]).
 -export([inverse/1]).
+-export([inverse/2]).
 -export([format_error/2]).
 
 % We must inline this so that the stack trace points to the correct function.
@@ -312,17 +313,40 @@ deep_next({?MODULE, I, Trail, Stack}) ->
 deep_next(Iter) ->
     error_info(badarg, [Iter]).
 
-% @doc Inverts `Map' by inserting each value as the key with its corresponding
-% key as the value. If two keys have the same value, one of the keys will be
-% overwritten by the other in an undefined order.
+% @doc Inverts a map by inserting each value as the key with its corresponding
+%  key as the value. If two keys have the same value, the value for the first
+%  key in map order will take precedence.
 %
 % The call can raise the following exceptions:
 % <ul>
 % <li>`{badmap,Map}' if `Map' is not a map</li>
 % </ul>
+%
+% @equiv inverse(Map, fun(V, _) -> V end)
 -spec inverse(map()) -> map().
-inverse(Map) ->
-    maps:fold(fun(K, V, Acc) -> maps:put(V, K, Acc) end, #{}, Map).
+inverse(Map) -> inverse(Map, fun(Old, _New) -> Old end).
+
+% @doc Inverts a map by inserting each value as the key with its corresponding
+%  key as the value. If two keys have the same value in `Map', `Fun' is called
+%  with the old and new key to determine the resulting value.
+%
+% The call can raise the following exceptions:
+% <ul>
+% <li>`{badmap,Map}' if `Map' is not a map</li>
+% <li>`badarg' if `Fun' is not a function of arity 2</li>
+% </ul>
+-spec inverse(map(), fun((Old::term(), New::term()) -> term())) -> map().
+inverse(Map, Fun) when is_map(Map), is_function(Fun, 2) ->
+    maps:fold(
+        fun(K1, V, Acc) ->
+            maps:update_with(V, fun(K0) -> Fun(K0, K1) end, K1, Acc)
+        end,
+        #{},
+        Map
+    );
+inverse(Map, Fun) ->
+    check_fun(Fun, 2),
+    error_info({badmap, Map}, [Map, Fun]).
 
 % @hidden
 format_error(_Reason, [{_M, F, As, _Info}|_]) ->

@@ -8,6 +8,12 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- New [`inverse/2`][inverse-2] function
+
+[inverse-2]: https://hexdocs.pm/mapz/mapz.html#inverse-2
+
 ## [2.2.0] - 2021-06-17
 
 ### Added

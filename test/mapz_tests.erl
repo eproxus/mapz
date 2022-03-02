@@ -52,7 +52,8 @@
     deep_merge_with/3,
     deep_iterator/1,
     deep_next/1,
-    inverse/1
+    inverse/1,
+    inverse/2
 ]).
 
 %--- Tests --------------------------------------------------------------------
@@ -252,5 +253,24 @@ exhaust({K, V, I}, Acc) ->
 
 inverse_test_() ->
     {inparallel, [
-        ?_assertEqual(#{1 => a, 2 => c}, inverse(#{a => 1, b => 2, c => 2}))
+        ?_assertEqual(#{}, inverse(#{})),
+        ?_assertEqual(#{1 => a, 2 => b}, inverse(#{a => 1, b => 2, c => 2})),
+        ?_assertEqual(
+            #{1 => a, 2 => [b, c, d]},
+            inverse(
+                #{a => 1, b => 2, c => 2, d => 2},
+                fun
+                    (Old, New) when is_list(Old) -> Old ++ [New];
+                    (Old, New) -> [Old, New]
+                end
+            )
+        ),
+        ?_assertError({badmap, foo}, inverse(foo)),
+        ?_assertError(
+            {badmap, foo},
+            inverse(foo, fun(_, _) -> error(should_not_occur) end)
+        ),
+        ?_assertExit(badarg, inverse(#{}, foo)),
+        ?_assertExit(badarg, inverse(#{}, fun() -> ok end)),
+        ?_assertExit(badarg, inverse(#{}, fun(_, _, _) -> ok end))
     ]}.
