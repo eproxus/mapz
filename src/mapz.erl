@@ -2,23 +2,41 @@
 
 % API
 -export([deep_find/2]).
+-ignore_xref({deep_find, 2}).
 -export([deep_get/2]).
+-ignore_xref({deep_get, 2}).
 -export([deep_get/3]).
+-ignore_xref({deep_get, 3}).
 -export([deep_put/3]).
+-ignore_xref({deep_put, 3}).
 -export([deep_update/3]).
+-ignore_xref({deep_update, 3}).
 -export([deep_update_with/3]).
+-ignore_xref({deep_update_with, 3}).
 -export([deep_update_with/4]).
+-ignore_xref({deep_update_with, 4}).
 -export([deep_remove/2]).
+-ignore_xref({deep_remove, 2}).
 -export([deep_merge/1]).
+-ignore_xref({deep_merge, 1}).
 -export([deep_merge/2]).
+-ignore_xref({deep_merge, 2}).
 -export([deep_merge/3]).
+-ignore_xref({deep_merge, 3}).
 -export([deep_merge_with/2]).
+-ignore_xref({deep_merge_with, 2}).
 -export([deep_merge_with/3]).
+-ignore_xref({deep_merge_with, 3}).
 -export([deep_iterator/1]).
+-ignore_xref({deep_iterator, 1}).
 -export([deep_next/1]).
+-ignore_xref({deep_next, 1}).
 -export([inverse/1]).
+-ignore_xref({inverse, 1}).
 -export([inverse/2]).
+-ignore_xref({inverse, 2}).
 -export([format_error/2]).
+-ignore_xref({format_error, 2}).
 
 % We must inline this so that the stack trace points to the correct function.
 -compile({inline, [error_info/2]}).
