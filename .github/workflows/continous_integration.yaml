@@ -34,14 +34,6 @@ jobs:
             ci-${{runner.os}}-${{env.cache-name}}-otp_${{matrix.otp}}-rebar_${{matrix.rebar3}}
             ci-${{runner.os}}-${{env.cache-name}}-otp_${{matrix.otp}}
 
-      - uses: actions/cache@v2
-        env:
-          cache-name: tailwind
-        with:
-          path: |
-            priv/styles/node_modules
-          key: ci-${{runner.os}}-${{env.cache-name}}-${{hashFiles('priv/styles/yarn.lock')}}
-
       - name: Compile
         run: rebar3 do clean, compile
 
