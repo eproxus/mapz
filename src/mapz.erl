@@ -55,7 +55,8 @@
 -opaque iterator() ::
     {?MODULE, none | maps:iterator(_, _) | {_, _, maps:iterator(_, _)}, path(),
         [maps:iterator(_, _)]}.
-% An iterator representing the associations in a map with keys of type Key and values of type Value.
+% An iterator representing the associations in a map with keys of type Key and
+% values of type Value.
 %
 % Created using {@link deep_iterator/1}.
 %
