@@ -50,14 +50,18 @@
 -type path() :: [term()].
 % A list of keys that are used to iterate deeper into a map of maps.
 
--opaque iterator() :: {?MODULE, none | maps:iterator(_, _) | {_, _, maps:iterator(_, _)}, path(), [maps:iterator(_, _)]}.
+-opaque iterator() ::
+    {?MODULE, none | maps:iterator(_, _) | {_, _, maps:iterator(_, _)}, path(),
+        [maps:iterator(_, _)]}.
 % An iterator representing the associations in a map with keys of type Key and values of type Value.
 %
 % Created using {@link deep_iterator/1}.
 %
 % Consumed by {@link deep_next/1}.
 
--type combiner() :: fun((Path::path(), Old::term(), New::term()) -> term()).
+-type combiner() :: fun(
+    (Path :: path(), Old :: term(), New :: term()) -> term()
+).
 % A combiner function that takes a path, and its two conflicting old values and
 % returns a new value.
 
@@ -74,7 +78,9 @@
 -spec deep_find(path(), map()) -> {ok, term()} | error.
 deep_find(Path, Map) ->
     check(Path, Map),
-    search(Map, Path,
+    search(
+        Map,
+        Path,
         fun(Value) -> {ok, Value} end,
         fun(_Existing, _Key) -> error end
     ).
@@ -92,11 +98,13 @@ deep_find(Path, Map) ->
 -spec deep_get(path(), map()) -> term().
 deep_get(Path, Map) ->
     check(Path, Map),
-    search(Map, Path,
+    search(
+        Map,
+        Path,
         fun(Value) -> Value end,
         fun
             ({ok, _Existing}, P) -> error({badvalue, P});
-            (error, P)           -> error({badkey, P})
+            (error, P) -> error({badkey, P})
         end
     ).
 
@@ -113,7 +121,9 @@ deep_get(Path, Map) ->
 -spec deep_get(path(), map(), term()) -> term().
 deep_get(Path, Map, Default) ->
     check(Path, Map),
-    search(Map, Path,
+    search(
+        Map,
+        Path,
         fun(Value) -> Value end,
         fun(_Existing, _P) -> Default end
     ).
@@ -131,7 +141,7 @@ deep_get(Path, Map, Default) ->
 %     the path `P'</li>
 % </ul>
 -spec deep_put(path(), term(), map()) -> map().
-deep_put(Path, Value, Map1)  ->
+deep_put(Path, Value, Map1) ->
     check(Path, Map1),
     update(Map1, Path, fun(_Existing) -> Value end, fun(P, Rest, V) ->
         badvalue_and_create(P, Rest, V, Value)
@@ -191,7 +201,9 @@ deep_update_with(Path, Fun, Init, Map1) ->
 deep_update_with_1(Path, Fun, Map1, Default) ->
     check(Path, Map1),
     check_fun(Fun, 1),
-    update(Map1, Path,
+    update(
+        Map1,
+        Path,
         fun(Value) -> Fun(Value) end,
         Default
     ).
@@ -241,7 +253,9 @@ deep_merge(Map1, Map2) when is_map(Map1), is_map(Map2) ->
 % map.
 %
 % @deprecated Please use the module {@link deep_merge_with/3} instead.
--spec deep_merge(fun((Old::term(), New::term()) -> term()), map(), map() | [map()]) -> map().
+-spec deep_merge(
+    fun((Old :: term(), New :: term()) -> term()), map(), map() | [map()]
+) -> map().
 deep_merge(Fun, Target, Maps) ->
     deep_merge_with(fun(_P, V1, V2) -> Fun(V1, V2) end, Target, Maps).
 
@@ -255,8 +269,8 @@ deep_merge(Fun, Target, Maps) ->
 % <li>`{badmap,Map}' exception if any of the maps is not a map</li>
 % </ul>
 % map.
--spec deep_merge_with(Fun::combiner(), Maps::[map()]) -> map().
-deep_merge_with(Fun, [Target|Maps]) ->
+-spec deep_merge_with(Fun :: combiner(), Maps :: [map()]) -> map().
+deep_merge_with(Fun, [Target | Maps]) ->
     deep_merge_with1(Fun, Target, Maps, []).
 
 % @doc Merges a list of maps `Maps' recursively into a single map. If a path
@@ -269,14 +283,16 @@ deep_merge_with(Fun, [Target|Maps]) ->
 % <li>`{badmap,Map}' exception if any of the maps is not a map</li>
 % </ul>
 % map.
--spec deep_merge_with(Fun::combiner(), Map1::map(), Map2::map()) -> map().
+-spec deep_merge_with(Fun :: combiner(), Map1 :: map(), Map2 :: map()) -> map().
 deep_merge_with(Fun, Map1, Map2) when is_map(Map1), is_map(Map2) ->
     deep_merge_with(Fun, [Map1, Map2]).
 
 deep_merge_with1(_Fun, Target, [], _Path) when is_map(Target) ->
     Target;
-deep_merge_with1(Fun, Target, [From|Maps], Path) ->
-    deep_merge_with1(Fun, deep_merge_with1(Fun, Target, From, Path), Maps, Path);
+deep_merge_with1(Fun, Target, [From | Maps], Path) ->
+    deep_merge_with1(
+        Fun, deep_merge_with1(Fun, Target, From, Path), Maps, Path
+    );
 deep_merge_with1(Fun, Target, Map, Path) when is_map(Map) ->
     check_map(Target),
     check_map(Map),
@@ -284,7 +300,9 @@ deep_merge_with1(Fun, Target, Map, Path) when is_map(Map) ->
         fun(K, V, T) ->
             case maps:find(K, T) of
                 {ok, Value} when is_map(Value), is_map(V) ->
-                    maps:put(K, deep_merge_with1(Fun, Value, [V], Path ++ [K]), T);
+                    maps:put(
+                        K, deep_merge_with1(Fun, Value, [V], Path ++ [K]), T
+                    );
                 {ok, Value} ->
                     maps:put(K, Fun(Path ++ [K], Value, V), T);
                 error ->
@@ -319,11 +337,12 @@ deep_next({?MODULE, I, Trail, Stack}) ->
     case {I, Stack} of
         {none, []} ->
             none;
-        {none, [Prev|Rest]} ->
+        {none, [Prev | Rest]} ->
             deep_next({?MODULE, maps:next(Prev), lists:droplast(Trail), Rest});
         {{K, V, I2}, Stack} when is_map(V) ->
             Path = Trail ++ [K],
-            {Path, V, {?MODULE, maps:next(maps:iterator(V)), Path, [I2|Stack]}};
+            Next = maps:next(maps:iterator(V)),
+            {Path, V, {?MODULE, Next, Path, [I2 | Stack]}};
         {{K, V, I2}, Stack} ->
             Path = Trail ++ [K],
             {Path, V, {?MODULE, I2, Trail, Stack}}
@@ -353,7 +372,7 @@ inverse(Map) -> inverse(Map, fun(Old, _New) -> Old end).
 % <li>`{badmap,Map}' if `Map' is not a map</li>
 % <li>`badarg' if `Fun' is not a function of arity 2</li>
 % </ul>
--spec inverse(map(), fun((Old::term(), New::term()) -> term())) -> map().
+-spec inverse(map(), fun((Old :: term(), New :: term()) -> term())) -> map().
 inverse(Map, Fun) when is_map(Map), is_function(Fun, 2) ->
     maps:fold(
         fun(K1, V, Acc) ->
@@ -367,7 +386,7 @@ inverse(Map, Fun) ->
     error_info({badmap, Map}, [Map, Fun]).
 
 % @hidden
-format_error(_Reason, [{_M, F, As, _Info}|_]) ->
+format_error(_Reason, [{_M, F, As, _Info} | _]) ->
     error_args(F, As).
 
 %--- Internal Functions -------------------------------------------------------
@@ -377,41 +396,42 @@ check(Path, Map) ->
     check_map(Map).
 
 check_path(Path) when is_list(Path) -> ok;
-check_path(Path)                    -> error_info({badpath, Path}, [Path]).
+check_path(Path) -> error_info({badpath, Path}, [Path]).
 
 check_map(Map) when is_map(Map) -> ok;
-check_map(Map)                  -> error_info({badmap, Map}, [Map]).
+check_map(Map) -> error_info({badmap, Map}, [Map]).
 
 check_fun(Fun, Arity) when is_function(Fun, Arity) -> ok;
-check_fun(_Fun, _Arity)                            -> exit(badarg).
+check_fun(_Fun, _Arity) -> exit(badarg).
 
 search(Map, Path, Wrap, Default) -> search(Map, Path, Wrap, Default, []).
 
 search(Element, [], Wrap, _Default, _Acc) ->
     Wrap(Element);
-search(Map, [Key|Path], Wrap, Default, Acc) when is_map(Map) ->
+search(Map, [Key | Path], Wrap, Default, Acc) when is_map(Map) ->
     case maps:find(Key, Map) of
-        {ok, Value} -> search(Value, Path, Wrap, Default, [Key|Acc]);
-        error       -> Default(error, lists:reverse([Key|Acc]))
+        {ok, Value} -> search(Value, Path, Wrap, Default, [Key | Acc]);
+        error -> Default(error, lists:reverse([Key | Acc]))
     end;
-search(Value, [_Key|_Path], _Wrap, Default, Acc) ->
+search(Value, [_Key | _Path], _Wrap, Default, Acc) ->
     Default({ok, Value}, lists:reverse(Acc)).
 
 update(Map, Path, Wrap, Default) -> update(Map, Path, Wrap, Default, []).
 
-update(Map, [Key|Path], Wrap, Default, Acc) ->
-    Hist = [Key|Acc],
-    Value = case maps:find(Key, Map) of
-        {ok, Existing} when is_map(Existing) ->
-            update(Existing, Path, Wrap, Default, Hist);
-        {ok, Existing} ->
-            case Path of
-                [] -> Wrap(Existing);
-                _  -> Default(lists:reverse(Hist), Path, {ok, Existing})
-            end;
-        error ->
-            Default(lists:reverse(Hist), Path, error)
-    end,
+update(Map, [Key | Path], Wrap, Default, Acc) ->
+    Hist = [Key | Acc],
+    Value =
+        case maps:find(Key, Map) of
+            {ok, Existing} when is_map(Existing) ->
+                update(Existing, Path, Wrap, Default, Hist);
+            {ok, Existing} ->
+                case Path of
+                    [] -> Wrap(Existing);
+                    _ -> Default(lists:reverse(Hist), Path, {ok, Existing})
+                end;
+            error ->
+                Default(lists:reverse(Hist), Path, error)
+        end,
     maps:put(Key, Value, Map);
 update(Map, [], Wrap, _Default, _Acc) ->
     Wrap(Map).
@@ -420,12 +440,12 @@ remove(Map, []) ->
     Map;
 remove(Map, [First]) ->
     maps:remove(First, Map);
-remove(Map, [First, Second|Path]) when is_map(Map) ->
+remove(Map, [First, Second | Path]) when is_map(Map) ->
     case maps:find(First, Map) of
         {ok, Sub} when is_map(Sub) ->
             case maps:find(Second, Sub) of
                 {ok, _SubSub} ->
-                    maps:update(First, remove(Sub, [Second|Path]), Map);
+                    maps:update(First, remove(Sub, [Second | Path]), Map);
                 error ->
                     maps:remove(First, Map)
             end;
@@ -439,10 +459,10 @@ create(Path, Value) ->
     lists:foldr(fun(Key, Acc) -> #{Key => Acc} end, Value, Path).
 
 badvalue_and_badkey(P, _Rest, {ok, _Existing}) -> error({badvalue, P});
-badvalue_and_badkey(P, _Rest, error)           -> error({badkey, P}).
+badvalue_and_badkey(P, _Rest, error) -> error({badkey, P}).
 
 badvalue_and_create(P, _Rest, {ok, _Existing}, _Init) -> error({badvalue, P});
-badvalue_and_create(_P, Rest, error, Init)            -> create(Rest, Init).
+badvalue_and_create(_P, Rest, error, Init) -> create(Rest, Init).
 
 error_info(Reason, Args) ->
     erlang:error(Reason, Args, [{error_info, #{module => ?MODULE}}]).

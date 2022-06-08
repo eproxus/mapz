@@ -1,3 +1,5 @@
 #!/bin/sh
 
-rebar3 'do' xref, dialyzer
+rebar3 fmt --check
+rebar3 xref
+rebar3 dialyzer

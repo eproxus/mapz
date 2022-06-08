@@ -60,19 +60,20 @@
 
 deep_find_test_() ->
     {inparallel, [
-        ?_assertEqual({ok, 1},             deep_find([a, a, a], ?STRUCT)),
-        ?_assertEqual(error,               deep_find([a, b, a], ?STRUCT))
+        ?_assertEqual({ok, 1}, deep_find([a, a, a], ?STRUCT)),
+        ?_assertEqual(error, deep_find([a, b, a], ?STRUCT))
     ]}.
 
 deep_get_test_() ->
     {inparallel, [
-        ?_assertEqual(1,         deep_get([a, a, a], ?STRUCT)),
+        ?_assertEqual(1, deep_get([a, a, a], ?STRUCT)),
         ?_assertEqual(#{a => 1}, deep_get([a, a], ?STRUCT)),
-        ?_assertEqual(d,         deep_get([a, c], ?STRUCT, d)),
-        ?_assertEqual(1,         deep_get([a, a, a], ?STRUCT, default)),
-        ?_assertEqual(default,   deep_get([a, b, c], ?STRUCT, default)),
-        ?_assertEqual(?STRUCT,   deep_get([], ?STRUCT))
-    ] ++ error_(fun(Path, Map) -> deep_get(Path, Map) end)}.
+        ?_assertEqual(d, deep_get([a, c], ?STRUCT, d)),
+        ?_assertEqual(1, deep_get([a, a, a], ?STRUCT, default)),
+        ?_assertEqual(default, deep_get([a, b, c], ?STRUCT, default)),
+        ?_assertEqual(?STRUCT, deep_get([], ?STRUCT))
+        | error_(fun(Path, Map) -> deep_get(Path, Map) end)
+    ]}.
 
 deep_put_test_() ->
     {inparallel, [
@@ -93,7 +94,8 @@ deep_update_test_() ->
             deep_put([a, a, a], 2, ?STRUCT),
             deep_update([a, a, a], 2, ?STRUCT)
         )
-    ] ++ error_(fun(P, M) -> deep_update(P, 2, M) end)}.
+        | error_(fun(P, M) -> deep_update(P, 2, M) end)
+    ]}.
 
 deep_update_with_test_() ->
     Incr = fun(V) -> V + 1 end,
@@ -108,8 +110,12 @@ deep_update_with_test_() ->
             deep_update_with([e], fun(M) -> M#{v => 1} end, ?STRUCT)
         ),
         ?_assertExit(badarg, deep_update_with([a], x, ?STRUCT)),
-        ?_assertExit(badarg, deep_update_with([a], fun() -> foo end, ?STRUCT))
-    ] ++ error_(fun(P, M) -> deep_update_with(P, Incr, M) end)}.
+        ?_assertExit(
+            badarg,
+            deep_update_with([a], fun() -> foo end, ?STRUCT)
+        )
+        | error_(fun(P, M) -> deep_update_with(P, Incr, M) end)
+    ]}.
 
 deep_update_with_init_test_() ->
     Incr = fun(V) -> V + 1 end,
@@ -124,20 +130,25 @@ deep_update_with_init_test_() ->
             deep_update_with([a, a, x, y], Incr, 0, ?STRUCT)
         ),
         ?_assertExit(badarg, deep_update_with([a], x, 0, ?STRUCT)),
-        ?_assertExit(badarg, deep_update_with([a], fun() -> foo end, 0, ?STRUCT))
-    ] ++ error_init_(fun(P, M) -> deep_update_with(P, Incr, 0, M) end)}.
+        ?_assertExit(
+            badarg,
+            deep_update_with([a], fun() -> foo end, 0, ?STRUCT)
+        )
+        | error_init_(fun(P, M) -> deep_update_with(P, Incr, 0, M) end)
+    ]}.
 
 error_(Function) ->
     [
-        ?_assertError({badkey, [b]},     Function([b], #{a => 1})),
-        ?_assertError({badkey, [b, x]},  Function([b, x], ?STRUCT))
-    ] ++ error_init_(Function).
+        ?_assertError({badkey, [b]}, Function([b], #{a => 1})),
+        ?_assertError({badkey, [b, x]}, Function([b, x], ?STRUCT))
+        | error_init_(Function)
+    ].
 
 error_init_(Function) ->
     [
-        ?_assertError({badmap, foobar},  Function([a], foobar)),
+        ?_assertError({badmap, foobar}, Function([a], foobar)),
         ?_assertError({badpath, foobar}, Function(foobar, #{a => 1})),
-        ?_assertError({badvalue, [d]},   Function([d, x], ?STRUCT))
+        ?_assertError({badvalue, [d]}, Function([d, x], ?STRUCT))
     ].
 
 deep_remove_test_() ->
@@ -161,7 +172,7 @@ deep_remove_test_() ->
     ]}.
 
 deep_merge_test_() ->
-    [First, Second|_] = Maps = ?TO_MERGE,
+    [First, Second | _] = Maps = ?TO_MERGE,
     Expected = ?MERGED,
     {inparallel, [
         ?_assertEqual(?STRUCT, deep_merge([?STRUCT, ?STRUCT])),
@@ -197,7 +208,7 @@ deep_merge_with_test_() ->
         ?_assertEqual(
             #{
                 a => {[a], [1, 2]},
-                b => #{c => {[b,c], [3,4]}},
+                b => #{c => {[b, c], [3, 4]}},
                 d => {[d], {5, 6}},
                 e => 7,
                 x => {[x], {[foo], #{y => [bar]}}}
@@ -205,7 +216,13 @@ deep_merge_with_test_() ->
             deep_merge_with(
                 Append,
                 #{a => [1], b => #{c => [3]}, d => 5, x => [foo]},
-                #{a => [2], b => #{c => [4]}, d => 6, e => 7, x => #{y => [bar]}}
+                #{
+                    a => [2],
+                    b => #{c => [4]},
+                    d => 6,
+                    e => 7,
+                    x => #{y => [bar]}
+                }
             )
         )
     ]}.
@@ -249,7 +266,7 @@ exhaust(I) ->
 exhaust(none, Acc) ->
     lists:reverse(Acc);
 exhaust({K, V, I}, Acc) ->
-    exhaust(deep_next(I), [{K, V}|Acc]).
+    exhaust(deep_next(I), [{K, V} | Acc]).
 
 inverse_test_() ->
     {inparallel, [

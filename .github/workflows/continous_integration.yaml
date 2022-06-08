@@ -37,6 +37,9 @@ jobs:
       - name: Compile
         run: rebar3 do clean, compile
 
+      - name: Check
+        run: rebar3 fmt --check
+
       - name: Analyze
         run: rebar3 do xref, dialyzer
 
