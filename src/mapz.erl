@@ -494,8 +494,13 @@ badvalue_and_badkey(P, _Rest, error) -> error({badkey, P}).
 badvalue_and_create(P, _Rest, {ok, _Existing}, _Init) -> error({badvalue, P});
 badvalue_and_create(_P, Rest, error, Init) -> create(Rest, Init).
 
+-ifdef(OTP_24_AND_LATER).
 error_info(Reason, Args) ->
     erlang:error(Reason, Args, [{error_info, #{module => ?MODULE}}]).
+-else.
+error_info(Reason, Args) ->
+    erlang:error(Reason, Args).
+-endif.
 
 error_args(iterator, [_Map]) ->
     #{1 => <<"not a map">>};
