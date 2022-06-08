@@ -38,6 +38,7 @@
 
 -import(mapz, [
     deep_find/2,
+    deep_search/2,
     deep_get/2,
     deep_get/3,
     deep_put/3,
@@ -77,6 +78,18 @@ deep_find_test_() ->
     {inparallel, [
         ?_assertEqual({ok, 1}, deep_find([a, a, a], ?STRUCT)),
         ?_assertEqual(error, deep_find([a, b, a], ?STRUCT))
+    ]}.
+
+deep_search_test_() ->
+    {inparallel, [
+        ?_assertEqual({ok, 1}, deep_search([a, a, a], ?STRUCT)),
+        ?_assertEqual({error, [a, b], 2}, deep_search([a, b, c], ?STRUCT)),
+        ?_assertEqual(
+            {error, [b], #{a => 3, b => 4}}, deep_search([b, c], ?STRUCT)
+        ),
+        ?_assertEqual({error, [], ?STRUCT}, deep_search([x], ?STRUCT)),
+        ?_assertEqual({ok, ?STRUCT}, deep_search([], ?STRUCT)),
+        ?_badarg(deep_search)
     ]}.
 
 deep_get_test_() ->

@@ -11,8 +11,10 @@ and this project adheres to
 ### Added
 
 - New [`inverse/2`][inverse-2] function
+- New [`deep_search/2`][deep_search-2] function
 
 [inverse-2]: https://hexdocs.pm/mapz/mapz.html#inverse-2
+[deep_search-2]: https://hexdocs.pm/mapz/mapz.html#deep_search-2
 
 ## [2.2.0] - 2021-06-17
 

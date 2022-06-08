@@ -3,6 +3,8 @@
 % API
 -export([deep_find/2]).
 -ignore_xref({deep_find, 2}).
+-export([deep_search/2]).
+-ignore_xref({deep_search, 2}).
 -export([deep_get/2]).
 -ignore_xref({deep_get, 2}).
 -export([deep_get/3]).
@@ -83,6 +85,33 @@ deep_find(Path, Map) ->
         Path,
         fun(Value) -> {ok, Value} end,
         fun(_Existing, _Key) -> error end
+    ).
+
+% @doc Returns a tuple `{ok,Value}' where `Value' is the value associated
+% with `Path', or `{error, PartialPath, Value}' if no value is associated with
+% `Path' in `Map', where `PartialPath' represents the path to the last found
+% element in `Map' and `Value' is the value found at that path.
+%
+% When no key in `Path' exists in `Map', `{error, [], Map}' is returned.
+%
+% The call can raise the following exceptions:
+% <ul>
+% <li>`{badmap,Map}' if `Map' is not a map</li>
+% <li>`{badpath,Path}' if `Path' is not a path</li>
+% </ul>
+deep_search(Path, Map) ->
+    check(Path, Map),
+    search(
+        Map,
+        Path,
+        fun(Value) -> {ok, Value} end,
+        fun
+            ({ok, Value}, LastPath) ->
+                {error, LastPath, Value};
+            (error, LastPath) ->
+                {FoundPath, _} = lists:split(length(LastPath) - 1, LastPath),
+                {error, FoundPath, deep_get(FoundPath, Map)}
+        end
     ).
 
 % @doc Returns value `Value' associated with `Path' if `Map' contains `Path'.
