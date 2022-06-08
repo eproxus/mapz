@@ -56,6 +56,21 @@
     inverse/2
 ]).
 
+-define(_badarg(Function),
+    ?_assertError({badmap, foobar}, (Function)([a], foobar)),
+    ?_assertError({badpath, foobar}, (Function)(foobar, #{a => 1}))
+).
+
+-define(_badvalue(Function),
+    ?_assertError({badvalue, [d]}, (Function)([d, x], ?STRUCT)),
+    ?_assertError({badvalue, [a, b]}, (Function)([a, b, c], ?STRUCT))
+).
+
+-define(_badkey(Function),
+    ?_assertError({badkey, [b]}, (Function)([b], #{a => 1})),
+    ?_assertError({badkey, [b, x]}, (Function)([b, x], ?STRUCT))
+).
+
 %--- Tests --------------------------------------------------------------------
 
 deep_find_test_() ->
@@ -71,8 +86,10 @@ deep_get_test_() ->
         ?_assertEqual(d, deep_get([a, c], ?STRUCT, d)),
         ?_assertEqual(1, deep_get([a, a, a], ?STRUCT, default)),
         ?_assertEqual(default, deep_get([a, b, c], ?STRUCT, default)),
-        ?_assertEqual(?STRUCT, deep_get([], ?STRUCT))
-        | error_(fun(Path, Map) -> deep_get(Path, Map) end)
+        ?_assertEqual(?STRUCT, deep_get([], ?STRUCT)),
+        ?_badarg(deep_get),
+        ?_badvalue(deep_get),
+        ?_badkey(deep_get)
     ]}.
 
 deep_put_test_() ->
@@ -83,8 +100,7 @@ deep_put_test_() ->
             #{a => 1, x => #{y => #{a => 3}}},
             deep_get([a, a], deep_put([a, a, x, y], #{a => 3}, ?STRUCT))
         ),
-        ?_assertError({badvalue, [d]}, deep_put([d, x], y, ?STRUCT)),
-        ?_assertError({badvalue, [a, b]}, deep_put([a, b, c], 1, ?STRUCT))
+        ?_badvalue(fun(P, M) -> deep_put(P, y, M) end)
     ]}.
 
 deep_update_test_() ->
@@ -93,8 +109,10 @@ deep_update_test_() ->
         ?_assertEqual(
             deep_put([a, a, a], 2, ?STRUCT),
             deep_update([a, a, a], 2, ?STRUCT)
-        )
-        | error_(fun(P, M) -> deep_update(P, 2, M) end)
+        ),
+        ?_badarg(fun(P, M) -> deep_update(P, 2, M) end),
+        ?_badvalue(fun(P, M) -> deep_update(P, 2, M) end),
+        ?_badkey(fun(P, M) -> deep_update(P, 2, M) end)
     ]}.
 
 deep_update_with_test_() ->
@@ -113,8 +131,10 @@ deep_update_with_test_() ->
         ?_assertExit(
             badarg,
             deep_update_with([a], fun() -> foo end, ?STRUCT)
-        )
-        | error_(fun(P, M) -> deep_update_with(P, Incr, M) end)
+        ),
+        ?_badarg(fun(P, M) -> deep_update_with(P, Incr, M) end),
+        ?_badvalue(fun(P, M) -> deep_update_with(P, Incr, M) end),
+        ?_badkey(fun(P, M) -> deep_update_with(P, Incr, M) end)
     ]}.
 
 deep_update_with_init_test_() ->
@@ -133,23 +153,10 @@ deep_update_with_init_test_() ->
         ?_assertExit(
             badarg,
             deep_update_with([a], fun() -> foo end, 0, ?STRUCT)
-        )
-        | error_init_(fun(P, M) -> deep_update_with(P, Incr, 0, M) end)
+        ),
+        ?_badarg(fun(P, M) -> deep_update_with(P, Incr, 0, M) end),
+        ?_badvalue(fun(P, M) -> deep_update_with(P, Incr, 0, M) end)
     ]}.
-
-error_(Function) ->
-    [
-        ?_assertError({badkey, [b]}, Function([b], #{a => 1})),
-        ?_assertError({badkey, [b, x]}, Function([b, x], ?STRUCT))
-        | error_init_(Function)
-    ].
-
-error_init_(Function) ->
-    [
-        ?_assertError({badmap, foobar}, Function([a], foobar)),
-        ?_assertError({badpath, foobar}, Function(foobar, #{a => 1})),
-        ?_assertError({badvalue, [d]}, Function([d, x], ?STRUCT))
-    ].
 
 deep_remove_test_() ->
     {inparallel, [
@@ -259,6 +266,8 @@ deep_iterator_test_() ->
             lists:sort(exhaust(deep_iterator(?STRUCT)))
         )
     ]}.
+
+%--- Internal ------------------------------------------------------------------
 
 exhaust(I) ->
     exhaust(deep_next(I), []).
