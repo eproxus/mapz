@@ -282,7 +282,7 @@ deep_merge(Map1, Map2) when is_map(Map1), is_map(Map2) ->
 % </ul>
 % map.
 %
-% @deprecated Please use the module {@link deep_merge_with/3} instead.
+% @deprecated Use {@link deep_merge_with/3} instead
 -spec deep_merge(
     fun((Old :: term(), New :: term()) -> term()), map(), map() | [map()]
 ) -> map().
