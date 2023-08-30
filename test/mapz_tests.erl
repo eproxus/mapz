@@ -293,17 +293,24 @@ exhaust({K, V, I}, Acc) ->
 inverse_test_() ->
     {inparallel, [
         ?_assertEqual(#{}, inverse(#{})),
-        ?_assertEqual(#{1 => a, 2 => b}, inverse(#{a => 1, b => 2, c => 2})),
-        ?_assertEqual(
-            #{1 => a, 2 => [b, c, d]},
-            inverse(
+        fun() ->
+            Inverted = inverse(#{a => 1, b => 2, c => 2}),
+            ?assertEqual([1, 2], lists:sort(maps:keys(Inverted))),
+            #{1 := a, 2 := Second} = Inverted,
+            ?assert(lists:member(Second, [b, c]))
+        end,
+        fun() ->
+            Inverted = inverse(
                 #{a => 1, b => 2, c => 2, d => 2},
                 fun
                     (Old, New) when is_list(Old) -> Old ++ [New];
                     (Old, New) -> [Old, New]
                 end
-            )
-        ),
+            ),
+            ?assertEqual([1, 2], lists:sort(maps:keys(Inverted))),
+            #{1 := a, 2 := Second} = Inverted,
+            ?assertEqual([b, c, d], lists:sort(Second))
+        end,
         ?_assertError({badmap, foo}, inverse(foo)),
         ?_assertError(
             {badmap, foo},
