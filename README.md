@@ -17,12 +17,6 @@
 
 <p align="center">
   <a href="https://hexdocs.pm/mapz/mapz.html">Function Reference</a>
-  ·
-  <a href="https://github.com/grisp/grisp/wiki">Wiki</a>
-  ·
-  <a href="https://erlangforums.com/c/erlang-platforms/grisp-forum/67">
-    Forums
-  </a>
 </p><br/>
 
 `mapz` contains additions to the Erlang maps module, mostly functionality to nested map usage. It tries to stay as true as possible to the original `maps` API with the same or similar errors where applicable.
