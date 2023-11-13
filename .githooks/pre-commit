@@ -3,3 +3,4 @@
 rebar3 fmt --check
 rebar3 xref
 rebar3 dialyzer
+rebar3 eunit
