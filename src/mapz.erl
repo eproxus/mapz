@@ -301,6 +301,7 @@ deep_merge(Fun, Target, Maps) ->
 % The call can raise the following exceptions:
 % <ul>
 % <li>`{badmap,Map}' exception if any of the maps is not a map</li>
+% <li>`badarg' if `Fun' is not a function of arity 3</li>
 % </ul>
 % map.
 -spec deep_merge_with(Fun :: combiner(), Maps :: [map()]) -> map().
@@ -327,9 +328,10 @@ deep_merge_with1(Fun, Target, [From | Maps], Path) ->
     deep_merge_with1(
         Fun, deep_merge_with1(Fun, Target, From, Path), Maps, Path
     );
-deep_merge_with1(Fun, Target, Map, Path) when is_map(Map) ->
+deep_merge_with1(Fun, Target, Map, Path) ->
     check_map(Target),
     check_map(Map),
+    check_fun(Fun, 3),
     maps:fold(
         fun(K, V, T) ->
             case maps:find(K, T) of

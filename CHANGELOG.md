@@ -16,6 +16,11 @@ and this project adheres to
 [deep_intersect-2]: https://hexdocs.pm/mapz/mapz.html#deep_intersect-2
 [deep_intersect_with-3]: https://hexdocs.pm/mapz/mapz.html#deep_intersect_with-3
 
+### Fixed
+
+- [`deep_merge_with/3`][deep_merge_with-3] now exits with `badarg` in case the
+  fun is not valid.
+
 ## [2.3.0] - 2022-06-08
 
 ### Added

@@ -225,6 +225,8 @@ deep_merge_with_test_() ->
             {P, {A, B}}
     end,
     {inparallel, [
+        ?_assertExit(badarg, deep_merge_with(foo, #{}, #{})),
+        ?_assertExit(badarg, deep_merge_with(fun() -> ok end, #{}, #{})),
         ?_assertEqual(?STRUCT, deep_merge_with(Override, ?STRUCT, ?STRUCT)),
         ?_assertEqual(?MERGED, deep_merge_with(Override, ?TO_MERGE)),
         ?_assertEqual(
