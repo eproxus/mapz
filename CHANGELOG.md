@@ -8,6 +8,14 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- New [`deep_intersect/2`][deep_intersect-2] function
+- New [`deep_intersect_with/3`][deep_intersect_with-3] function
+
+[deep_intersect-2]: https://hexdocs.pm/mapz/mapz.html#deep_intersect-2
+[deep_intersect_with-3]: https://hexdocs.pm/mapz/mapz.html#deep_intersect_with-3
+
 ## [2.3.0] - 2022-06-08
 
 ### Added

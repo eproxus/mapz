@@ -33,6 +33,10 @@
 -ignore_xref({deep_iterator, 1}).
 -export([deep_next/1]).
 -ignore_xref({deep_next, 1}).
+-export([deep_intersect/2]).
+-ignore_xref({deep_intersect, 2}).
+-export([deep_intersect_with/3]).
+-ignore_xref({deep_intersect_with, 3}).
 -export([inverse/1]).
 -ignore_xref({inverse, 1}).
 -export([inverse/2]).
@@ -380,6 +384,59 @@ deep_next({?MODULE, I, Trail, Stack}) ->
 deep_next(Iter) ->
     error_info(badarg, [Iter]).
 
+% @doc Intersects two maps into a single map `Map3'. If a path exists in both
+%  maps, the value in `Map1' is superseded by the value in `Map2'.
+%
+% The call can raise the following exceptions:
+% <ul>
+% <li>`{badmap,Map}' exception if any of the maps is not a map</li>
+% </ul>
+%
+% @equiv deep_intersect_with(fun(_, _, V) -> V end, Map1, Map2)
+-spec deep_intersect(Map1 :: map(), Map2 :: map()) -> Map3 :: map().
+deep_intersect(A, B) ->
+    deep_intersect_with(fun(_Path, _V1, V2) -> V2 end, A, B).
+
+% @doc Intersects two maps into a single map `Map3'.
+%
+% If a path exists in both maps, the value in `Map1' is combined with the
+% value in `Map2' by the `Combiner' fun. When `Combiner' is applied the path
+% that exists in both maps is the first parameter, the value from `Map1' is
+% the second parameter, and the value from `Map2' is the third parameter.
+%
+% The call can raise the following exceptions:
+% <ul>
+% <li>`{badmap,Map}' exception if any of the maps is not a map</li>
+% <li>`badarg' if `Fun' is not a function of arity 3</li>
+% </ul>
+-spec deep_intersect_with(Fun :: combiner(), Map1 :: map(), Map2 :: map()) ->
+    Map3 :: map().
+deep_intersect_with(Combiner, A, B) ->
+    check_map(B),
+    check_fun(Combiner, 3),
+    deep_intersect_with1({Combiner, flip_combiner(Combiner)}, A, B, []).
+
+deep_intersect_with1({Combiner, Flipped}, A, B, Path) when
+    map_size(A) > map_size(B)
+->
+    deep_intersect_with1({Flipped, Combiner}, B, A, Path);
+deep_intersect_with1(Combiners, A, B, Path) ->
+    deep_intersect1(maps:next(maps:iterator(A)), B, [], Combiners, Path).
+
+deep_intersect1(none, _B, Keep, _Combiners, _Path) ->
+    maps:from_list(Keep);
+deep_intersect1({K, V1, Iter}, B, Keep, {Combiner, _} = Combiners, Path) ->
+    NewKeep =
+        case B of
+            #{K := V2} when is_map(V1), is_map(V2) ->
+                [{K, deep_intersect_with1(Combiners, V1, V2, Path)} | Keep];
+            #{K := V2} ->
+                [{K, Combiner(Path ++ [K], V1, V2)} | Keep];
+            _ ->
+                Keep
+        end,
+    deep_intersect1(maps:next(Iter), B, NewKeep, Combiners, Path).
+
 % @doc Inverts a map by inserting each value as the key with its corresponding
 %  key as the value. If two keys have the same value, the value for the first
 %  key in map order will take precedence.
@@ -506,3 +563,5 @@ error_args(iterator, [_Map]) ->
     #{1 => <<"not a map">>};
 error_args(deep_next, [_Iter]) ->
     #{1 => <<"not a valid iterator">>}.
+
+flip_combiner(Fun) -> fun(Path, V1, V2) -> Fun(Path, V2, V1) end.

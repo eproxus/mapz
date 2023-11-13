@@ -53,6 +53,8 @@
     deep_merge_with/3,
     deep_iterator/1,
     deep_next/1,
+    deep_intersect/2,
+    deep_intersect_with/3,
     inverse/1,
     inverse/2
 ]).
@@ -277,6 +279,102 @@ deep_iterator_test_() ->
                 {[e], #{}}
             ]),
             lists:sort(exhaust(deep_iterator(?STRUCT)))
+        )
+    ]}.
+
+deep_interset_test_() ->
+    {inparallel, [
+        ?_assertError({badmap, foo}, deep_intersect(foo, #{})),
+        ?_assertError({badmap, foo}, deep_intersect(#{}, foo)),
+        ?_assertEqual(#{}, deep_intersect(#{}, #{})),
+        ?_assertEqual(
+            #{
+                c => #{
+                    x => #{
+                        foo => baz
+                    }
+                },
+                val => false
+            },
+            deep_intersect(
+                #{
+                    c => #{
+                        x => #{foo => bar}
+                    },
+                    val => true,
+                    b => 2
+                },
+                #{
+                    c => #{
+                        x => #{foo => baz, qux => no},
+                        y => 4
+                    },
+                    val => false,
+                    a => 1
+                }
+            )
+        ),
+        ?_assertEqual(
+            #{
+                a => #{
+                    1 => x
+                }
+            },
+            deep_intersect(
+                #{
+                    a => #{1 => x, 2 => x, 3 => x, 4 => x}
+                },
+                #{
+                    a => #{1 => x},
+                    b => 1,
+                    c => 2,
+                    d => 3
+                }
+            )
+        )
+    ]}.
+
+deep_interset_with_test_() ->
+    Combiner = fun
+        (_Path, V1, V1) -> same;
+        (_Path, V1, V2) when V1 < V2 -> bigger;
+        (_Path, _V1, _V2) -> smaller
+    end,
+    {inparallel, [
+        ?_assertExit(badarg, deep_intersect_with(foo, #{}, #{})),
+        ?_assertExit(badarg, deep_intersect_with(fun() -> ok end, #{}, #{})),
+        ?_assertError({badmap, foo}, deep_intersect_with(Combiner, foo, #{})),
+        ?_assertError({badmap, foo}, deep_intersect_with(Combiner, #{}, foo)),
+        ?_assertEqual(
+            #{
+                c => #{
+                    x => #{
+                        foo => bigger
+                    }
+                },
+                val => smaller,
+                d => same
+            },
+            deep_intersect_with(
+                Combiner,
+                #{
+                    c => #{
+                        x => #{foo => 1}
+                    },
+                    val => 2,
+                    b => 3,
+                    d => 9
+                },
+                #{
+                    c => #{
+                        x => #{foo => 4, qux => 5},
+                        y => 6
+                    },
+                    val => -7,
+                    a => 8,
+                    d => 9
+                }
+            )
         )
     ]}.
 
