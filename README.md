@@ -11,7 +11,7 @@
     <img alt="hex.pm license" src="https://img.shields.io/hexpm/l/mapz?style=flat-square"/>
   </a>
   <a href="https://github.com/eproxus/mapz/blob/master/.github/workflows/continous_integration.yaml#L14">
-    <img alt="erlang versions" src="https://img.shields.io/badge/erlang-23+-blue.svg?style=flat-square"/>
+    <img alt="erlang versions" src="https://img.shields.io/badge/erlang-25+-blue.svg?style=flat-square"/>
   </a>
 </p>
 
