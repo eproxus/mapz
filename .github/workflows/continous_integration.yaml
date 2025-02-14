@@ -40,7 +40,8 @@ jobs:
       - name: Compile
         run: rebar3 do clean, compile
 
-      - name: Check
+      - name: Check formatting
+        if: ${{ fromJson(matrix.otp) >= 27 }}
         run: rebar3 fmt --check
 
       - name: Analyze
