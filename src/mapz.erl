@@ -1,5 +1,18 @@
 -module(mapz).
 
+% Disable new documentation syntax on versions below 27
+-if(?OTP_RELEASE >= 27).
+-define(moduledoc(Docstring), -moduledoc(Docstring)).
+-define(doc(Docstring), -doc(Docstring)).
+-else.
+-define(moduledoc(_Docstring), -compile([])).
+-define(doc(_Docstring), -compile([])).
+-endif.
+
+?moduledoc("""
+Additions to the Erlang maps module.
+""").
+
 % API
 -export([deep_find/2]).
 -ignore_xref({deep_find, 2}).
@@ -44,6 +57,8 @@
 -export([format_error/2]).
 -ignore_xref({format_error, 2}).
 
+-deprecated({deep_merge, 3, "use `deep_merge_with/3` instead"}).
+
 % We must inline this so that the stack trace points to the correct function.
 -compile({inline, [error_info/2]}).
 
@@ -53,35 +68,43 @@
 -export_type([iterator/0]).
 -export_type([combiner/0]).
 
+?doc("A list of keys that are used to iterate deeper into a map of maps.").
 -type path() :: [term()].
-% A list of keys that are used to iterate deeper into a map of maps.
 
+?doc("""
+An iterator representing the associations in a map with keys of type Key and
+values of type Value.
+
+Created using `deep_iterator/1`.
+
+Consumed by `deep_next/1`.
+""").
 -opaque iterator() ::
-    {?MODULE, none | maps:iterator(_, _) | {_, _, maps:iterator(_, _)}, path(),
-        [maps:iterator(_, _)]}.
-% An iterator representing the associations in a map with keys of type Key and
-% values of type Value.
-%
-% Created using {@link deep_iterator/1}.
-%
-% Consumed by {@link deep_next/1}.
+    {
+        ?MODULE,
+        none | maps:iterator(_, _) | {_, _, maps:iterator(_, _)},
+        path(),
+        [maps:iterator(_, _)]
+    }.
 
--type combiner() :: fun(
-    (Path :: path(), Old :: term(), New :: term()) -> term()
-).
-% A combiner function that takes a path, and its two conflicting old values and
-% returns a new value.
+?doc("""
+A combiner function that takes a path, and its two conflicting old values and
+returns a new value.
+""").
+-type combiner() ::
+    fun((Path :: path(), Old :: term(), New :: term()) -> term()).
 
 %--- API ----------------------------------------------------------------------
 
-% @doc Returns a tuple `{ok,Value}', where Value is the value associated with
-% `Path', or `error' if no value is associated with `Path' in `Map'.
-%
-% The call can raise the following exceptions:
-% <ul>
-% <li>`{badmap,Map}' if `Map' is not a map</li>
-% <li>`{badpath,Path}' if `Path' is not a path</li>
-% </ul>
+?doc("""
+Returns a tuple `{ok,Value}`, where Value is the value associated with `Path`,
+or `error` if no value is associated with `Path` in `Map`.
+
+The call can raise the following exceptions:
+
+* `{badmap,Map}` if `Map` is not a map
+* `{badpath,Path}` if `Path` is not a path
+""").
 -spec deep_find(path(), map()) -> {ok, term()} | error.
 deep_find(Path, Map) ->
     check(Path, Map),
@@ -92,18 +115,19 @@ deep_find(Path, Map) ->
         fun(_Existing, _Key) -> error end
     ).
 
-% @doc Returns a tuple `{ok,Value}' where `Value' is the value associated
-% with `Path', or `{error, PartialPath, Value}' if no value is associated with
-% `Path' in `Map', where `PartialPath' represents the path to the last found
-% element in `Map' and `Value' is the value found at that path.
-%
-% When no key in `Path' exists in `Map', `{error, [], Map}' is returned.
-%
-% The call can raise the following exceptions:
-% <ul>
-% <li>`{badmap,Map}' if `Map' is not a map</li>
-% <li>`{badpath,Path}' if `Path' is not a path</li>
-% </ul>
+?doc("""
+Returns a tuple `{ok,Value}` where `Value` is the value associated with `Path`,
+or `{error, PartialPath, Value}` if no value is associated with `Path` in `Map`,
+where `PartialPath` represents the path to the last found element in `Map` and
+`Value` is the value found at that path.
+
+When no key in `Path` exists in `Map`, `{error, [], Map}` is returned.
+
+The call can raise the following exceptions:
+
+* `{badmap,Map}` if `Map` is not a map
+* `{badpath,Path}` if `Path` is not a path
+""").
 deep_search(Path, Map) ->
     check(Path, Map),
     search(
@@ -119,16 +143,17 @@ deep_search(Path, Map) ->
         end
     ).
 
-% @doc Returns value `Value' associated with `Path' if `Map' contains `Path'.
-%
-% The call can raise the following exceptions:
-% <ul>
-% <li>`{badmap,Map}' if `Map' is not a map</li>
-% <li>`{badpath,Path}' if `Path' is not a path</li>
-% <li>`{badvalue,P}' if a term that is not a map exists as a intermediate key at
-%     the path `P'</li>
-% <li>`{badkey,Path}' if no value is associated with path `Path'</li>
-% </ul>
+?doc("""
+Returns value `Value` associated with `Path` if `Map` contains `Path`.
+
+The call can raise the following exceptions:
+
+* `{badmap,Map}` if `Map` is not a map
+* `{badpath,Path}` if `Path` is not a path
+* `{badvalue,P}` if a term that is not a map exists as a intermediate key at the
+  path `P`
+* `{badkey,Path}` if no value is associated with path `Path`
+""").
 -spec deep_get(path(), map()) -> term().
 deep_get(Path, Map) ->
     check(Path, Map),
@@ -142,16 +167,17 @@ deep_get(Path, Map) ->
         end
     ).
 
-% @doc Returns value `Value' associated with `Path' if `Map' contains `Path'. If
-% no value is associated with `Path', `Default' is returned.
-%
-% The call can raise the following exceptions:
-% <ul>
-% <li>`{badmap,Map}' if `Map' is not a map</li>
-% <li>`{badpath,Path}' if `Path' is not a path</li>
-% <li>`{badvalue,P}' if a term that is not a map exists as a intermediate key at
-%     the path `P'</li>
-% </ul>
+?doc("""
+Returns value `Value` associated with `Path` if `Map` contains `Path`. If
+no value is associated with `Path`, `Default` is returned.
+
+The call can raise the following exceptions:
+
+* `{badmap,Map}` if `Map` is not a map
+* `{badpath,Path}` if `Path` is not a path
+* `{badvalue,P}` if a term that is not a map exists as a intermediate key at the
+  path `P`
+""").
 -spec deep_get(path(), map(), term()) -> term().
 deep_get(Path, Map, Default) ->
     check(Path, Map),
@@ -162,18 +188,19 @@ deep_get(Path, Map, Default) ->
         fun(_Existing, _P) -> Default end
     ).
 
-% @doc Associates `Path' with value `Value' and inserts the association into map
-% `Map2'. If path `Path' already exists in map `Map1', the old associated value
-% is replaced by value `Value'. The function returns a new map `Map2' containing
-% the new association and the old associations in `Map1'.
-%
-% The call can raise the following exceptions:
-% <ul>
-% <li>`{badmap,Map}' if `Map1' is not a map</li>
-% <li>`{badpath,Path}' if `Path' is not a path</li>
-% <li>`{badvalue,P}' if a term that is not a map exists as a intermediate key at
-%     the path `P'</li>
-% </ul>
+?doc("""
+Associates `Path` with value `Value` and inserts the association into map
+`Map2`. If path `Path` already exists in map `Map1`, the old associated value
+is replaced by value `Value`. The function returns a new map `Map2` containing
+the new association and the old associations in `Map1`.
+
+The call can raise the following exceptions:
+
+* `{badmap,Map}` if `Map1` is not a map
+* `{badpath,Path}` if `Path` is not a path
+* `{badvalue,P}` if a term that is not a map exists as a intermediate key at the
+  path `P`
+""").
 -spec deep_put(path(), term(), map()) -> map().
 deep_put(Path, Value, Map1) ->
     check(Path, Map1),
@@ -181,51 +208,54 @@ deep_put(Path, Value, Map1) ->
         badvalue_and_create(P, Rest, V, Value)
     end).
 
-% @doc If `Path' exists in `Map1', the old associated value is replaced by value
-% `Value'. The function returns a new map `Map2' containing the new associated
-% value.
-%
-% The call can raise the following exceptions:
-% <ul>
-% <li>`{badmap,Map}' if `Map1' is not a map</li>
-% <li>`{badpath,Path}' if `Path' is not a path</li>
-% <li>`{badvalue,P}' if a term that is not a map exists as a intermediate key at
-%     the path `P'</li>
-% <li>`{badkey,Path}' if no value is associated with path `Path'</li>
-% </ul>
+?doc("""
+If `Path` exists in `Map1`, the old associated value is replaced by value
+`Value`. The function returns a new map `Map2` containing the new associated
+value.
+
+The call can raise the following exceptions:
+
+* `{badmap,Map}` if `Map1` is not a map
+* `{badpath,Path}` if `Path` is not a path
+* `{badvalue,P}` if a term that is not a map exists as a intermediate key at the
+  path `P`
+* `{badkey,Path}` if no value is associated with path `Path`
+""").
 -spec deep_update(path(), term(), map()) -> map().
 deep_update(Path, Value, Map1) ->
     check(Path, Map1),
     update(Map1, Path, fun(_Existing) -> Value end, fun badvalue_and_badkey/3).
 
-% @doc Update a value in a `Map1' associated with `Path' by calling `Fun' on the
-% old value to get a new value.
-%
-% The call can raise the following exceptions:
-% <ul>
-% <li>`{badmap,Map}' if `Map1' is not a map</li>
-% <li>`{badpath,Path}' if `Path' is not a path</li>
-% <li>`{badvalue,P}' if a term that is not a map exists as a intermediate key at
-%     the path `P'</li>
-% <li>`{badkey,Path}' if no value is associated with path `Path'</li>
-% <li>`badarg' if `Fun' is not a function of arity 1</li>
-% </ul>
+?doc("""
+Update a value in a `Map1` associated with `Path` by calling `Fun` on the old
+value to get a new value.
+
+The call can raise the following exceptions:
+
+* `{badmap,Map}` if `Map1` is not a map
+* `{badpath,Path}` if `Path` is not a path
+* `{badvalue,P}` if a term that is not a map exists as a intermediate key at the
+  path `P`
+* `{badkey,Path}` if no value is associated with path `Path`
+* `badarg` if `Fun` is not a function of arity 1
+""").
 -spec deep_update_with(path(), fun((term()) -> term()), map()) -> map().
 deep_update_with(Path, Fun, Map1) ->
     deep_update_with_1(Path, Fun, Map1, fun badvalue_and_badkey/3).
 
-% @doc Update a value in a `Map1' associated with `Path' by calling `Fun' on the
-% old value to get a new value.  If `Path' is not present in `Map1' then `Init'
-% will be associated with `Path'.
-%
-% The call can raise the following exceptions:
-% <ul>
-% <li>`{badmap,Map}' if `Map1' is not a map</li>
-% <li>`{badpath,Path}' if `Path' is not a path</li>
-% <li>`{badvalue,P}' if a term that is not a map exists as a intermediate key at
-%     the path `P'</li>
-% <li>`badarg' if `Fun' is not a function of arity 1</li>
-% </ul>
+?doc("""
+Update a value in a `Map1` associated with `Path` by calling `Fun` on the
+old value to get a new value.  If `Path` is not present in `Map1` then `Init`
+will be associated with `Path`.
+
+The call can raise the following exceptions:
+
+* `{badmap,Map}` if `Map1` is not a map
+* `{badpath,Path}` if `Path` is not a path
+* `{badvalue,P}` if a term that is not a map exists as a intermediate key at the
+  path `P`
+* `badarg` if `Fun` is not a function of arity 1
+""").
 -spec deep_update_with(path(), fun((term()) -> term()), any(), map()) -> map().
 deep_update_with(Path, Fun, Init, Map1) ->
     deep_update_with_1(Path, Fun, Map1, fun(P, Rest, Value) ->
@@ -242,82 +272,91 @@ deep_update_with_1(Path, Fun, Map1, Default) ->
         Default
     ).
 
-% @doc Removes the last existing key of `Path', and its associated value from
-% `Map1' and returns a new map `Map2' without that key. Any deeper non-existing
-% keys are ignored.
-%
-% The call can raise the following exceptions:
-% <ul>
-% <li>`{badmap,Map}' if `Map' is not a map</li>
-% <li>`{badpath,Path}' if `Path' is not a path</li>
-% </ul>
+?doc("""
+Removes the last existing key of `Path`, and its associated value from
+`Map1` and returns a new map `Map2` without that key. Any deeper non-existing
+keys are ignored.
+
+The call can raise the following exceptions:
+
+* `{badmap,Map}` if `Map` is not a map
+* `{badpath,Path}` if `Path` is not a path
+""").
 -spec deep_remove(path(), map()) -> map().
 deep_remove(Path, Map) ->
     check(Path, Map),
     remove(Map, Path).
 
-% @doc Merges a list of maps recursively into a single map. If a path exist in
-% several maps, the value in the first nested map is superseded by the value in
-% a following nested map.
-%
-% The call can raise the following exceptions:
-% <ul>
-% <li>`{badmap,Map}' exception if any of the maps is not a map</li>
-% </ul>
-%
-% @equiv deep_merge(fun (_, V) -> V end, #{}, Maps)
+?doc("""
+Merges a list of maps recursively into a single map.
+
+If a path exist in several maps, the value in the first nested map is superseded
+by the value in a following nested map.
+
+That is, `deep_merge/2` behaves as if it had been defined as follows:
+
+```erlang
+deep_merge(Maps) when is_list(Maps) ->
+    deep_merge_with(fun(_Path, _V1, V2) -> V2 end, Maps).
+```
+
+The call can raise the following exceptions:
+
+* `{badmap,Map}` exception if any of the maps is not a map
+""").
 -spec deep_merge([map()]) -> map().
 deep_merge(Maps) when is_list(Maps) ->
     deep_merge_with(fun(_Path, _V1, V2) -> V2 end, Maps).
 
-% @equiv deep_merge([Map1, Map2])
+?doc(#{equiv => deep_merge([Map1, Map2])}).
 -spec deep_merge(map(), map()) -> map().
 deep_merge(Map1, Map2) when is_map(Map1), is_map(Map2) ->
     deep_merge([Map1, Map2]).
 
-% @doc Merges a list of maps `Maps' recursively into a single map `Target'. If a
-% path exist in several maps, the function `Fun' is called with the previous and
-% the conflicting value to resolve the conflict. The return value from the
-% function is put into the resulting map.
-%
-% The call can raise the following exceptions:
-% <ul>
-% <li>`{badmap,Map}' exception if any of the maps is not a map</li>
-% </ul>
-% map.
-%
-% @deprecated Use {@link deep_merge_with/3} instead
+?doc("""
+Merges a list of maps `Maps` recursively into a single map `Target`.
+
+If a path exist in several maps, the function `Fun` is called with the previous
+and the conflicting value to resolve the conflict. The return value from the
+function is put into the resulting map.
+
+The call can raise the following exceptions:
+
+* `{badmap,Map}` exception if any of the maps is not a map
+""").
 -spec deep_merge(
     fun((Old :: term(), New :: term()) -> term()), map(), map() | [map()]
 ) -> map().
 deep_merge(Fun, Target, Maps) ->
     deep_merge_with(fun(_P, V1, V2) -> Fun(V1, V2) end, Target, Maps).
 
-% @doc Merges a list of maps `Maps' recursively into a single map. If a path
-%  exist in several maps, the function `Fun' is called with the path, the
-%  previous and the conflicting value to resolve the conflict. The return value
-%  from the function is put into the resulting map.
-%
-% The call can raise the following exceptions:
-% <ul>
-% <li>`{badmap,Map}' exception if any of the maps is not a map</li>
-% <li>`badarg' if `Fun' is not a function of arity 3</li>
-% </ul>
-% map.
+?doc("""
+Merges a list of maps `Maps` recursively into a single map.
+
+If a path exist in several maps, the function `Fun` is called with the path, the
+previous and the conflicting value to resolve the conflict. The return value
+from the function is put into the resulting map.
+
+The call can raise the following exceptions:
+
+* `{badmap,Map}` exception if any of the maps is not a map
+* `badarg` if `Fun` is not a function of arity 3
+""").
 -spec deep_merge_with(Fun :: combiner(), Maps :: [map()]) -> map().
 deep_merge_with(Fun, [Target | Maps]) ->
     deep_merge_with1(Fun, Target, Maps, []).
 
-% @doc Merges a list of maps `Maps' recursively into a single map. If a path
-%  exist in several maps, the function `Fun' is called with the path, the
-%  previous and the conflicting value to resolve the conflict. The return value
-%  from the function is put into the resulting map.
-%
-% The call can raise the following exceptions:
-% <ul>
-% <li>`{badmap,Map}' exception if any of the maps is not a map</li>
-% </ul>
-% map.
+?doc("""
+Merges a list of maps `Maps` recursively into a single map.
+
+If a path exist in several maps, the function `Fun` is called with the path, the
+previous and the conflicting value to resolve the conflict. The return value
+from the function is put into the resulting map.
+
+The call can raise the following exceptions:
+
+* `{badmap,Map}` exception if any of the maps is not a map
+""").
 -spec deep_merge_with(Fun :: combiner(), Map1 :: map(), Map2 :: map()) -> map().
 deep_merge_with(Fun, Map1, Map2) when is_map(Map1), is_map(Map2) ->
     deep_merge_with(Fun, [Map1, Map2]).
@@ -349,25 +388,29 @@ deep_merge_with1(Fun, Target, Map, Path) ->
         Map
     ).
 
-% @doc Returns a map iterator Iterator that can be used by {@link deep_next/1}
-%  to recursively traverse the path-value associations in a deep map structure.
-%
-% The call fails with a `{badmap,Map}' exception if Map is not a map.
+?doc("""
+Returns a map iterator `Iterator` that can be used by `deep_next/1` to
+recursively traverse the path-value associations in a deep map structure.
+
+The call fails with a `{badmap,Map}` exception if Map is not a map.
+""").
 -spec deep_iterator(map()) -> iterator().
 deep_iterator(Map) when is_map(Map) ->
     {?MODULE, maps:next(maps:iterator(Map)), [], []};
 deep_iterator(Map) ->
     error_info({badmap, Map}, [Map]).
 
-% @doc Returns the next path-value association in Iterator and a new iterator
-%  for the remaining associations in the iterator.
-%
-% If the value is another map the iterator will first return the map as a value
-% with its path. Only on the next call the inner value with its path is
-% returned. That is, first `{Path, map(), iterator()}' and then
-% `{InnerPath, Value, iterator()}'.
-%
-% If there are no more associations in the iterator, `none' is returned.
+?doc("""
+Returns the next path-value association in `Iterator` and a new iterator for the
+remaining associations in the iterator.
+
+If the value is anogher map the iterator will first return the map as a value
+with its path. Only on the next call the inner value with its path is returned.
+That is, first `{Path, map(), iterator()}` and then `{InnerPath, Value,
+iterator()}`.
+
+If there are no more associations in the iterator, `none` is returned.
+""").
 -spec deep_next(iterator()) -> {path(), term(), iterator()} | none.
 deep_next({?MODULE, I, Trail, Stack}) ->
     case {I, Stack} of
@@ -386,31 +429,40 @@ deep_next({?MODULE, I, Trail, Stack}) ->
 deep_next(Iter) ->
     error_info(badarg, [Iter]).
 
-% @doc Intersects two maps into a single map `Map3'. If a path exists in both
-%  maps, the value in `Map1' is superseded by the value in `Map2'.
-%
-% The call can raise the following exceptions:
-% <ul>
-% <li>`{badmap,Map}' exception if any of the maps is not a map</li>
-% </ul>
-%
-% @equiv deep_intersect_with(fun(_, _, V) -> V end, Map1, Map2)
+?doc("""
+Intersects two maps into a single map `Map3`.
+
+If a path exists in both maps, the value in `Map1` is superseded by the value in
+`Map2`.
+
+That is, `deep_intersect/2` behaves as if it had been defined as follows:
+
+```erlang
+deep_intersect(A, B) ->
+    deep_intersect_with(fun(_Path, _V1, V2) -> V2 end, A, B).
+```
+
+The call can raise the following exceptions:
+
+* `{badmap,Map}` exception if any of the maps is not a map
+""").
 -spec deep_intersect(Map1 :: map(), Map2 :: map()) -> Map3 :: map().
 deep_intersect(A, B) ->
     deep_intersect_with(fun(_Path, _V1, V2) -> V2 end, A, B).
 
-% @doc Intersects two maps into a single map `Map3'.
-%
-% If a path exists in both maps, the value in `Map1' is combined with the
-% value in `Map2' by the `Combiner' fun. When `Combiner' is applied the path
-% that exists in both maps is the first parameter, the value from `Map1' is
-% the second parameter, and the value from `Map2' is the third parameter.
-%
-% The call can raise the following exceptions:
-% <ul>
-% <li>`{badmap,Map}' exception if any of the maps is not a map</li>
-% <li>`badarg' if `Fun' is not a function of arity 3</li>
-% </ul>
+?doc("""
+Intersects two maps into a single map `Map3`.
+
+If a path exists in both maps, the value in `Map1` is combined with the value in
+`Map2` by the `Combiner` fun. When `Combiner` is applied the path that exists in
+both maps is the first parameter, the value from `Map1` is the second parameter,
+and the value from `Map2` is the third parameter.
+
+The call can raise the following exceptions:
+
+* `{badmap,Map}` exception if any of the maps is not a map
+* `badarg` if `Fun` is not a function of arity 3
+""").
 -spec deep_intersect_with(Fun :: combiner(), Map1 :: map(), Map2 :: map()) ->
     Map3 :: map().
 deep_intersect_with(Combiner, A, B) ->
@@ -439,28 +491,34 @@ deep_intersect1({K, V1, Iter}, B, Keep, {Combiner, _} = Combiners, Path) ->
         end,
     deep_intersect1(maps:next(Iter), B, NewKeep, Combiners, Path).
 
-% @doc Inverts a map by inserting each value as the key with its corresponding
-%  key as the value. If two keys have the same value, the value for the first
-%  key in map order will take precedence.
-%
-% The call can raise the following exceptions:
-% <ul>
-% <li>`{badmap,Map}' if `Map' is not a map</li>
-% </ul>
-%
-% @equiv inverse(Map, fun(V, _) -> V end)
+?doc("""
+Inverts a map by inserting each value as the key with its corresponding key as
+the value. If two keys have the same value, the value for the first key in map
+order will take precedence.
+
+That is, `inverse/1` behaves as if it had been defined as follows:
+
+```erlang
+inverse(Map) -> inverse(Map, fun(Old, _New) -> Old end).
+```
+
+The call can raise the following exceptions:
+
+* `{badmap,Map}` if `Map` is not a map
+""").
 -spec inverse(map()) -> map().
 inverse(Map) -> inverse(Map, fun(Old, _New) -> Old end).
 
-% @doc Inverts a map by inserting each value as the key with its corresponding
-%  key as the value. If two keys have the same value in `Map', `Fun' is called
-%  with the old and new key to determine the resulting value.
-%
-% The call can raise the following exceptions:
-% <ul>
-% <li>`{badmap,Map}' if `Map' is not a map</li>
-% <li>`badarg' if `Fun' is not a function of arity 2</li>
-% </ul>
+?doc("""
+Inverts a map by inserting each value as the key with its corresponding key as
+the value. If two keys have the same value in `Map`, `Fun` is called with the
+old and new key to determine the resulting value.
+
+The call can raise the following exceptions:
+
+* `{badmap,Map}` if `Map` is not a map
+* `badarg` if `Fun` is not a function of arity 2
+""").
 -spec inverse(map(), fun((Old :: term(), New :: term()) -> term())) -> map().
 inverse(Map, Fun) when is_map(Map), is_function(Fun, 2) ->
     maps:fold(
@@ -474,7 +532,7 @@ inverse(Map, Fun) ->
     check_fun(Fun, 2),
     error_info({badmap, Map}, [Map, Fun]).
 
-% @hidden
+?doc(hidden).
 format_error(_Reason, [{_M, F, As, _Info} | _]) ->
     error_args(F, As).
 
@@ -553,7 +611,7 @@ badvalue_and_badkey(P, _Rest, error) -> error({badkey, P}).
 badvalue_and_create(P, _Rest, {ok, _Existing}, _Init) -> error({badvalue, P});
 badvalue_and_create(_P, Rest, error, Init) -> create(Rest, Init).
 
--ifdef(OTP_24_AND_LATER).
+-if(?OTP_RELEASE >= 24).
 error_info(Reason, Args) ->
     erlang:error(Reason, Args, [{error_info, #{module => ?MODULE}}]).
 -else.

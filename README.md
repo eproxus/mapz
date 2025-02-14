@@ -17,9 +17,12 @@
 
 <p align="center">
   <a href="https://hexdocs.pm/mapz/mapz.html">Function Reference</a>
-</p><br/>
+</p>
+<br />
 
-`mapz` contains additions to the Erlang maps module, mostly functionality to nested map usage. It tries to stay as true as possible to the original `maps` API with the same or similar errors where applicable.
+`mapz` contains additions to the Erlang maps module, mostly functionality to
+nested map usage. It tries to stay as true as possible to the original `maps`
+API with the same or similar errors where applicable.
 
 ## Features
 
