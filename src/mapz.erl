@@ -150,8 +150,8 @@ The call can raise the following exceptions:
 
 * `{badmap,Map}` if `Map` is not a map
 * `{badpath,Path}` if `Path` is not a path
-* `{badvalue,P}` if a term that is not a map exists as a intermediate key at the
-  path `P`
+* `{badvalue,PartialPath,Value}` if a value `Value` that is not a map exists as
+  a intermediate key at the path `PartialPath`
 * `{badkey,Path}` if no value is associated with path `Path`
 """).
 -spec deep_get(path(), map()) -> term().
@@ -162,7 +162,7 @@ deep_get(Path, Map) ->
         Path,
         fun(Value) -> Value end,
         fun
-            ({ok, _Existing}, P) -> error({badvalue, P});
+            ({ok, Existing}, P) -> error({badvalue, P, Existing});
             (error, P) -> error({badkey, P})
         end
     ).
@@ -175,8 +175,8 @@ The call can raise the following exceptions:
 
 * `{badmap,Map}` if `Map` is not a map
 * `{badpath,Path}` if `Path` is not a path
-* `{badvalue,P}` if a term that is not a map exists as a intermediate key at the
-  path `P`
+* `{badvalue,PartialPath,Value}` if a value `Value` that is not a map exists as
+  a intermediate key at the path `PartialPath`
 """).
 -spec deep_get(path(), map(), term()) -> term().
 deep_get(Path, Map, Default) ->
@@ -198,8 +198,8 @@ The call can raise the following exceptions:
 
 * `{badmap,Map}` if `Map1` is not a map
 * `{badpath,Path}` if `Path` is not a path
-* `{badvalue,P}` if a term that is not a map exists as a intermediate key at the
-  path `P`
+* `{badvalue,PartialPath,Value}` if a value `Value` that is not a map exists as
+  a intermediate key at the path `PartialPath`
 """).
 -spec deep_put(path(), term(), map()) -> map().
 deep_put(Path, Value, Map1) ->
@@ -217,8 +217,8 @@ The call can raise the following exceptions:
 
 * `{badmap,Map}` if `Map1` is not a map
 * `{badpath,Path}` if `Path` is not a path
-* `{badvalue,P}` if a term that is not a map exists as a intermediate key at the
-  path `P`
+* `{badvalue,PartialPath,Value}` if a value `Value` that is not a map exists as
+  a intermediate key at the path `PartialPath`
 * `{badkey,Path}` if no value is associated with path `Path`
 """).
 -spec deep_update(path(), term(), map()) -> map().
@@ -234,8 +234,8 @@ The call can raise the following exceptions:
 
 * `{badmap,Map}` if `Map1` is not a map
 * `{badpath,Path}` if `Path` is not a path
-* `{badvalue,P}` if a term that is not a map exists as a intermediate key at the
-  path `P`
+* `{badvalue,PartialPath,Value}` if a value `Value` that is not a map exists as
+  a intermediate key at the path `PartialPath`
 * `{badkey,Path}` if no value is associated with path `Path`
 * `badarg` if `Fun` is not a function of arity 1
 """).
@@ -252,8 +252,8 @@ The call can raise the following exceptions:
 
 * `{badmap,Map}` if `Map1` is not a map
 * `{badpath,Path}` if `Path` is not a path
-* `{badvalue,P}` if a term that is not a map exists as a intermediate key at the
-  path `P`
+* `{badvalue,PartialPath,Value}` if a value `Value` that is not a map exists as
+  a intermediate key at the path `PartialPath`
 * `badarg` if `Fun` is not a function of arity 1
 """).
 -spec deep_update_with(path(), fun((term()) -> term()), any(), map()) -> map().
@@ -605,11 +605,15 @@ remove(Map, [First, Second | Path]) when is_map(Map) ->
 create(Path, Value) ->
     lists:foldr(fun(Key, Acc) -> #{Key => Acc} end, Value, Path).
 
-badvalue_and_badkey(P, _Rest, {ok, _Existing}) -> error({badvalue, P});
-badvalue_and_badkey(P, _Rest, error) -> error({badkey, P}).
+badvalue_and_badkey(P, _Rest, {ok, Existing}) ->
+    error({badvalue, P, Existing});
+badvalue_and_badkey(P, _Rest, error) ->
+    error({badkey, P}).
 
-badvalue_and_create(P, _Rest, {ok, _Existing}, _Init) -> error({badvalue, P});
-badvalue_and_create(_P, Rest, error, Init) -> create(Rest, Init).
+badvalue_and_create(P, _Rest, {ok, Existing}, _Init) ->
+    error({badvalue, P, Existing});
+badvalue_and_create(_P, Rest, error, Init) ->
+    create(Rest, Init).
 
 -if(?OTP_RELEASE >= 24).
 error_info(Reason, Args) ->

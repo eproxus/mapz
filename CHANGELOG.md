@@ -8,6 +8,11 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking!** Changed the error `{badvalue, PartialPath}` to `{badvalue,
+  PartialPath, Value}`
+
 ### Removed
 
 - **Breaking!** Removed official support for Erlang 23 and 24.

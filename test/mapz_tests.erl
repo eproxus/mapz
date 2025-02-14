@@ -65,8 +65,8 @@
 ).
 
 -define(_badvalue(Function),
-    ?_assertError({badvalue, [d]}, (Function)([d, x], ?STRUCT)),
-    ?_assertError({badvalue, [a, b]}, (Function)([a, b, c], ?STRUCT))
+    ?_assertError({badvalue, [d], []}, (Function)([d, x], ?STRUCT)),
+    ?_assertError({badvalue, [a, b], 2}, (Function)([a, b, c], ?STRUCT))
 ).
 
 -define(_badkey(Function),
